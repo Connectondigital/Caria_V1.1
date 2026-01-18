@@ -1,0 +1,13 @@
+[Unit]
+Description=Caria Estates Backend Service
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/var/www/caria_v1/backend
+ExecStart=/usr/bin/python3 -m uvicorn server:app --host 0.0.0.0 --port 5001
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

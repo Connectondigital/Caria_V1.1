@@ -1,0 +1,4436 @@
+import { useState, useRef, useEffect } from "react";
+import axios from "axios";
+import "@/App.css";
+import Navbar from "./components/Navbar";
+import { BrowserRouter, Routes, Route, Link, useParams, useNavigate, useLocation } from "react-router-dom";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Menu,
+  X,
+  Phone,
+  Mail,
+  MapPin,
+  Instagram,
+  Facebook,
+  Linkedin,
+  Youtube,
+  Search,
+  Bed,
+  Bath,
+  Square,
+  Maximize2,
+  Home as HomeIcon,
+  Download,
+  Check,
+  MessageSquare,
+  ChevronDown,
+  Calendar,
+  Building2
+} from "lucide-react";
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
+
+// ============================================
+// DYNAMIC DATA FALLBACKS (Empty by default)
+// ============================================
+const properties = [];
+const featuredProperties = [];
+const agents = [];
+const blogArticles = [];
+const partners = [];
+const projects = [];
+
+// ============================================
+// SECTION 2: HERO COMPONENT (Full-screen Video)
+// ============================================
+const Hero = ({ sliders, content }) => {
+  const getSetting = (key, defaultValue) => {
+    const setting = content?.find(c => c.content_key === key);
+    return setting ? setting.value_tr : defaultValue;
+  };
+
+  const heroTitle = getSetting('hero_title', 'CARIA ESTATES');
+  const heroSubtitle = getSetting('hero_subtitle', 'Exclusive Mediterranean Living');
+  const heroBtnText = getSetting('hero_btn_text', 'Explore Properties');
+  const sliderBtnText = getSetting('hero_slider_btn_text', 'Explore More');
+
+  const hasSliders = sliders && sliders.length > 0;
+
+  return (
+    <section className="relative h-screen w-full overflow-hidden flex items-center justify-center" data-testid="hero-section">
+      {/* Background Layer: Always Video as Primary */}
+      <div className="absolute inset-0 z-0">
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          poster="https://images.unsplash.com/photo-1694967832949-09984640b143?w=1920&h=1080&fit=crop"
+          className="absolute inset-0 w-full h-full object-cover"
+        >
+          <source src="/assets/videos/caria-vid.mp4" type="video/mp4" />
+        </video>
+
+        {/* Cinematic Overlay (Clear and Sharp) */}
+        <div className="absolute inset-0 bg-black/20 z-10" />
+      </div>
+
+      {/* Centered Content Layer: Always "CARIA ESTATES" as requested */}
+      <div className="relative z-20 text-center px-6 max-w-5xl">
+        <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl text-white font-light tracking-wide mb-8 drop-shadow-xl">
+          {heroTitle.toUpperCase()} <sup className="text-2xl md:text-3xl">®</sup>
+        </h1>
+        <p className="text-white text-lg md:text-xl font-light tracking-[0.25em] mb-12 max-w-2xl mx-auto uppercase drop-shadow-lg">
+          {heroSubtitle}
+        </p>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+          <Link
+            to="/properties"
+            className="min-w-[220px] px-10 py-4 border border-white text-white text-xs tracking-[0.3em] uppercase hover:bg-white hover:text-caria-slate transition-all duration-500 shadow-lg font-medium"
+          >
+            {heroBtnText}
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+
+
+
+// ============================================
+// SECTION 2: INTRO SECTION (Mint Background)
+// ============================================
+const IntroSection = ({ content }) => {
+  const introText = content?.find(c => c.content_key === 'intro_text')?.value_tr ||
+    "Caria Estates provides expert guidance and luxury real estate services in Northern Cyprus. We combine local insight with global standards to offer a refined, transparent property experience. Whether you are seeking a coastal retreat, investment opportunity, or your dream Mediterranean home, our dedicated team is here to guide you every step of the way.";
+
+  return (
+    <section className="bg-caria-mint py-16 md:py-24 border-b border-black/5" data-testid="intro-section">
+      <div className="max-w-5xl mx-auto px-8 lg:px-12 text-center">
+        <div
+          className="text-caria-slate text-lg md:text-xl leading-relaxed font-light cms-content italic"
+          data-testid="intro-text"
+          dangerouslySetInnerHTML={{ __html: introText }}
+        />
+      </div>
+    </section>
+  );
+};
+
+// ============================================
+// SECTION 3: REGION TABS
+// ============================================
+const RegionTabs = ({ activeRegion, setActiveRegion }) => {
+  const regions = ["DISCOVER ALL", "KYRENIA", "ISKELE", "FAMAGUSTA"];
+
+  return (
+    <div className="bg-white py-8 border-b border-gray-100" data-testid="region-tabs">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="flex items-center justify-center space-x-8 md:space-x-16">
+          {regions.map((region) => (
+            <button
+              key={region}
+              onClick={() => setActiveRegion(region)}
+              className={`tab-item text-xs md:text-sm tracking-[0.15em] pb-2 ${activeRegion === region
+                ? 'text-caria-slate active'
+                : 'text-gray-400 hover:text-gray-600'
+                }`}
+              data-testid={`tab-${region.toLowerCase().replace(' ', '-')}`}
+            >
+              {region}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================
+// SECTION 4: PROPERTY CARD COMPONENT
+// ============================================
+const PropertyCard = ({ property }) => {
+  return (
+    <Link
+      to={`/property/${property.slug}`}
+      className="property-card block bg-white rounded-lg shadow-md border border-gray-100 overflow-hidden"
+      data-testid={`property-card-${property.id}`}
+    >
+      <div className="relative h-64 overflow-hidden bg-caria-mint">
+        <img
+          src={property.image || "/assets/images/placeholder-teal.png"}
+          alt={property.title}
+          className="property-image w-full h-full object-cover"
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = "/assets/images/placeholder-teal.png";
+          }}
+        />
+        {/* Tag */}
+        <span className="absolute top-4 left-4 bg-white px-3 py-1 text-xs font-medium tracking-wider text-caria-slate rounded-sm">
+          {property.tag}
+        </span>
+      </div>
+
+      {/* Content */}
+      <div className="p-5">
+        <h3 className="font-serif text-xl font-medium text-caria-slate mb-1" data-testid={`property-title-${property.id}`}>
+          {property.title}
+        </h3>
+        <p className="text-xs tracking-wider text-gray-400 uppercase mb-3">
+          {property.location}
+        </p>
+        <p className="text-lg font-semibold text-caria-slate mb-3">
+          {property.price}
+        </p>
+        <div className="flex items-center space-x-4 text-sm text-gray-500">
+          <span className="flex items-center">
+            <Bed size={16} className="mr-1" />
+            {property.beds} bed
+          </span>
+          <span className="flex items-center">
+            <Bath size={16} className="mr-1" />
+            {property.baths} bath
+          </span>
+          <span className="flex items-center">
+            <Square size={16} className="mr-1" />
+            {property.area} m²
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+};
+
+// ============================================
+// CURATED PROPERTY CARD (Large card for slider)
+// ============================================
+const CuratedPropertyCard = ({ property }) => {
+  return (
+    <Link
+      to={`/property/${property.slug}`}
+      className="curated-property-card flex flex-col h-full bg-white rounded-lg overflow-hidden"
+      data-testid={`curated-card-${property.id}`}
+    >
+      <div className="relative h-60 md:h-80 lg:h-96 overflow-hidden bg-caria-mint">
+        <img
+          src={property.image || "/assets/images/placeholder-teal.png"}
+          alt={property.title}
+          className="curated-property-image w-full h-full object-cover"
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = "/assets/images/placeholder-teal.png";
+          }}
+        />
+        {/* Tag Badge */}
+        <span className="absolute top-5 left-5 bg-white px-4 py-2 text-xs font-medium tracking-wider text-caria-slate rounded">
+          {property.tag}
+        </span>
+      </div>
+
+      {/* Content */}
+      <div className="flex flex-col flex-grow p-6">
+        <h3 className="font-serif text-2xl md:text-3xl font-medium text-caria-slate mb-2" data-testid={`curated-title-${property.id}`}>
+          {property.title}
+        </h3>
+        <p className="text-xs tracking-[0.15em] text-gray-400 uppercase mb-4">
+          {property.location}
+        </p>
+        <p className="text-xl md:text-2xl font-semibold text-caria-slate mb-auto">
+          {property.price}
+        </p>
+
+        {/* Stats at bottom */}
+        <div className="flex items-center space-x-6 text-sm text-gray-500 mt-6 pt-6 border-t border-gray-100">
+          <span className="flex items-center">
+            <Bed size={18} className="mr-2" />
+            {property.beds} bed
+          </span>
+          <span className="flex items-center">
+            <Bath size={18} className="mr-2" />
+            {property.baths} bath
+          </span>
+          <span className="flex items-center">
+            <Square size={18} className="mr-2" />
+            {property.area} m²
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+};
+
+// ============================================
+// SECTION 4: CURATED LISTINGS SLIDER (Strand-style)
+// ============================================
+const CuratedListings = ({ activeRegion, properties }) => {
+  const sliderRef = useRef(null);
+  const [activeTag, setActiveTag] = useState('All');
+
+  // Extract unique tags from properties
+  const tags = ['All', ...new Set(properties.map(p => p.tag))];
+
+  // Filter by region first
+  const filteredByRegion = activeRegion === "DISCOVER ALL"
+    ? properties
+    : properties.filter(p => p.region === activeRegion);
+
+  // Then filter by tag
+  const filteredProperties = activeTag === "All"
+    ? filteredByRegion
+    : filteredByRegion.filter(p => p.tag === activeTag);
+
+  const scroll = (direction) => {
+    if (sliderRef.current) {
+      const scrollAmount = 600;
+      sliderRef.current.scrollBy({
+        left: direction === 'right' ? scrollAmount : -scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  return (
+    <section className="bg-white py-16 md:py-24" data-testid="curated-listings">
+      <div className="max-w-[1440px] mx-auto px-8 lg:px-12">
+        {/* Header Row */}
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-8">
+          <div>
+            <h2 className="font-serif text-3xl md:text-4xl text-caria-slate mb-3" data-testid="curated-title">
+              Curated Listings
+            </h2>
+            <p className="text-gray-500 text-sm max-w-md">
+              Explore our handpicked selection of exceptional properties across Northern Cyprus
+            </p>
+          </div>
+
+          {/* Navigation Buttons - Desktop only */}
+          <div className="hidden md:flex items-center space-x-3">
+            <button
+              onClick={() => scroll('left')}
+              className="slider-nav-btn w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:bg-caria-slate hover:text-white hover:border-caria-slate"
+              data-testid="curated-prev"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <button
+              onClick={() => scroll('right')}
+              className="slider-nav-btn w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center text-gray-500 hover:bg-caria-slate hover:text-white hover:border-caria-slate"
+              data-testid="curated-next"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+        </div>
+
+        {/* Filter Chips */}
+        <div className="flex flex-wrap gap-3 mb-8">
+          {tags.map((tag) => (
+            <button
+              key={tag}
+              onClick={() => setActiveTag(tag)}
+              className={`px-4 py-2 text-xs tracking-wider uppercase rounded-full transition-all ${activeTag === tag
+                ? 'text-white'
+                : 'bg-caria-mint text-gray-600 hover:bg-gray-200'
+                }`}
+              style={activeTag === tag ? { backgroundColor: '#3BB2B8' } : {}}
+              data-testid={`curated-filter-${tag.toLowerCase().replace(' ', '-')}`}
+            >
+              {tag}
+            </button>
+          ))}
+        </div>
+
+        {/* Property Slider - Large cards */}
+        <div
+          ref={sliderRef}
+          className="flex gap-10 overflow-x-auto hide-scrollbar scroll-container scroll-snap-x pb-8"
+        >
+          {filteredProperties.map((property) => (
+            <div
+              key={property.id}
+              className="flex-none w-full md:w-[48%] xl:w-[49%] scroll-snap-start"
+            >
+              <CuratedPropertyCard property={property} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// ============================================
+// SECTION 5: ADVANCED SEARCH BAR
+// ============================================
+const AdvancedSearchBar = ({ properties }) => {
+  const [location, setLocation] = useState('');
+  const [priceMin, setPriceMin] = useState('');
+  const [priceMax, setPriceMax] = useState('');
+  const navigate = useNavigate();
+
+  const clearAll = () => {
+    setLocation('');
+    setPriceMin('');
+    setPriceMax('');
+  };
+
+  const handleSearch = () => {
+    const params = new URLSearchParams();
+    if (location) params.append('q', location);
+    if (priceMin) params.append('minPrice', priceMin);
+    if (priceMax) params.append('maxPrice', priceMax);
+
+    navigate(`/properties?${params.toString()}`);
+  };
+
+  return (
+    <section className="bg-caria-mint pb-20 md:pb-28" data-testid="search-section">
+      <div className="max-w-[1440px] mx-auto px-8 lg:px-12">
+        {/* Section Title */}
+        <h2 className="font-serif text-3xl md:text-4xl text-caria-slate text-center mb-12" data-testid="search-title">
+          Where would you love to live?
+        </h2>
+
+        {/* Search Form */}
+        <div className="bg-white rounded-lg shadow-lg p-6 md:p-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            {/* Location Input */}
+            <div className="md:col-span-1">
+              <label className="text-xs text-gray-500 tracking-wider uppercase mb-2 block">Location</label>
+              <input
+                type="text"
+                placeholder="Location or Reference"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                className="search-input w-full px-4 py-3 border border-gray-200 rounded-sm text-sm"
+                data-testid="search-location"
+              />
+            </div>
+
+            {/* Price Min */}
+            <div className="md:col-span-1">
+              <label className="text-xs text-gray-500 tracking-wider uppercase mb-2 block">Price Min</label>
+              <input
+                type="text"
+                placeholder="£ Min"
+                value={priceMin}
+                onChange={(e) => setPriceMin(e.target.value)}
+                className="search-input w-full px-4 py-3 border border-gray-200 rounded-sm text-sm"
+                data-testid="search-price-min"
+              />
+            </div>
+
+            {/* Price Max */}
+            <div className="md:col-span-1">
+              <label className="text-xs text-gray-500 tracking-wider uppercase mb-2 block">Price Max</label>
+              <input
+                type="text"
+                placeholder="£ Max"
+                value={priceMax}
+                onChange={(e) => setPriceMax(e.target.value)}
+                className="search-input w-full px-4 py-3 border border-gray-200 rounded-sm text-sm"
+                data-testid="search-price-max"
+              />
+            </div>
+
+            {/* Buttons */}
+            <div className="md:col-span-1 flex flex-col justify-end">
+              <div className="flex gap-2">
+                <button
+                  onClick={clearAll}
+                  className="flex-1 px-4 py-3 border border-gray-300 text-gray-600 text-xs tracking-wider uppercase rounded-sm hover:bg-gray-50"
+                  data-testid="search-clear"
+                >
+                  Clear All
+                </button>
+                <button
+                  onClick={handleSearch}
+                  className="flex-1 px-4 py-3 text-white text-xs tracking-wider uppercase rounded-sm flex items-center justify-center transition-all"
+                  style={{ backgroundColor: '#3BB2B8' }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#3299A0'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3BB2B8'}
+                  data-testid="search-submit"
+                >
+                  <Search size={16} className="mr-2" />
+                  Search
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Links */}
+          <div className="flex flex-wrap gap-4 pt-4 border-t border-gray-100">
+            <button className="flex items-center text-sm text-gray-500 hover:text-caria-turquoise bg-caria-mint px-4 py-2 rounded-full transition-colors">
+              <MapPin size={14} className="mr-2" />
+              Select Kyrenia area on map
+            </button>
+            <button className="flex items-center text-sm text-gray-500 hover:text-caria-turquoise bg-caria-mint px-4 py-2 rounded-full transition-colors">
+              <MapPin size={14} className="mr-2" />
+              Select Iskele area on map
+            </button>
+            <button className="text-sm text-gray-500 hover:text-caria-turquoise transition-colors">
+              + more filters
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// ============================================
+// SECTION 6: CONTACT AGENT VIDEO SLIDER
+// ============================================
+const ContactAgentSlider = ({ advisors = [] }) => {
+  const [activeFilter, setActiveFilter] = useState('All');
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  // Use DB advisors if available, fallback to static agents for legacy
+  const displayAdvisors = advisors.length > 0 ? advisors : agents;
+
+  const filters = ['All', 'Kyrenia', 'Esentepe', 'Iskele', 'Famagusta'];
+
+  const filteredAgents = activeFilter === 'All'
+    ? displayAdvisors
+    : displayAdvisors.filter(a => a.region?.toUpperCase() === activeFilter.toUpperCase());
+
+  const nextSlide = () => {
+    setCurrentIndex((prev) => (prev + 1) % filteredAgents.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentIndex((prev) => (prev - 1 + filteredAgents.length) % filteredAgents.length);
+  };
+
+  return (
+    <section className="bg-white py-16 md:py-24" data-testid="agents-section">
+      <div className="max-w-7xl mx-auto px-6">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+          <h2 className="font-serif text-3xl md:text-4xl text-caria-slate mb-4 md:mb-0" data-testid="agents-title">
+            Contact your Caria advisor
+          </h2>
+
+          {/* Navigation Buttons */}
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={prevSlide}
+              className="slider-nav-btn w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center text-gray-500"
+              data-testid="agents-prev"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <button
+              onClick={nextSlide}
+              className="slider-nav-btn w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center text-gray-500"
+              data-testid="agents-next"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+        </div>
+
+        {/* Filter Chips */}
+        <div className="flex space-x-4 mb-8">
+          {filters.map((filter) => (
+            <button
+              key={filter}
+              onClick={() => setActiveFilter(filter)}
+              className={`text-xs tracking-wider ${activeFilter === filter
+                ? 'text-caria-slate underline underline-offset-4'
+                : 'text-gray-400 hover:text-gray-600'
+                }`}
+              data-testid={`agent-filter-${filter.toLowerCase()}`}
+            >
+              {filter}
+            </button>
+          ))}
+        </div>
+
+        {/* Agent Cards Slider */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {filteredAgents.map((agent) => (
+            <Link
+              to={`/advisor/${agent.slug || 'pilar-anguita'}`}
+              key={agent.id}
+              className="agent-card relative rounded-lg overflow-hidden aspect-[3/4] group cursor-pointer"
+              data-testid={`agent-card-${agent.id}`}
+            >
+              <img
+                src={agent.image_url || agent.thumbnail || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&h=1000&fit=crop"}
+                alt={agent.name}
+                className="w-full h-full object-cover"
+              />
+              {/* Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+
+              {/* Agent Info */}
+              <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/90 via-black/40 to-transparent translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
+                <p className="text-white font-serif text-xl mb-1">{agent.name}</p>
+                <p className="text-white/70 text-xs tracking-widest uppercase">{agent.title || agent.region}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {/* Pagination Dots */}
+        <div className="flex items-center justify-center space-x-2 mt-8">
+          {filteredAgents.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => setCurrentIndex(idx)}
+              className={`carousel-dot h-2 rounded-full transition-all ${idx === currentIndex
+                ? 'w-6 bg-caria-slate active'
+                : 'w-2 bg-gray-300'
+                }`}
+              data-testid={`agent-dot-${idx}`}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// ============================================
+// SECTION 7: FEATURED PROPERTIES SLIDER
+// ============================================
+const FeaturedPropertiesSlider = ({ featuredProperties }) => {
+  const [activeFilter, setActiveFilter] = useState('All');
+  const sliderRef = useRef(null);
+  const filters = ['All', 'Kyrenia', 'Esentepe', 'Iskele', 'Famagusta'];
+
+  const filteredProperties = activeFilter === 'All'
+    ? featuredProperties
+    : featuredProperties.filter(p => p.region === activeFilter || p.location.includes(activeFilter));
+
+  const scroll = (direction) => {
+    if (sliderRef.current) {
+      const scrollAmount = 400;
+      sliderRef.current.scrollBy({
+        left: direction === 'right' ? scrollAmount : -scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  return (
+    <section className="bg-caria-mint py-16 md:py-24" data-testid="featured-section">
+      <div className="max-w-[1440px] mx-auto px-8 lg:px-12">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+          <h2 className="font-serif text-3xl md:text-4xl text-caria-slate mb-4 md:mb-0" data-testid="featured-title">
+            Featured Properties
+          </h2>
+
+          {/* Navigation Buttons */}
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => scroll('left')}
+              className="slider-nav-btn w-10 h-10 rounded-full border border-gray-400 flex items-center justify-center text-gray-600"
+              data-testid="featured-prev"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <button
+              onClick={() => scroll('right')}
+              className="slider-nav-btn w-10 h-10 rounded-full border border-gray-400 flex items-center justify-center text-gray-600"
+              data-testid="featured-next"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+        </div>
+
+        {/* Filter Chips */}
+        <div className="flex space-x-4 mb-8">
+          {filters.map((filter) => (
+            <button
+              key={filter}
+              onClick={() => setActiveFilter(filter)}
+              className={`text-xs tracking-wider ${activeFilter === filter
+                ? 'text-caria-slate underline underline-offset-4'
+                : 'text-gray-500 hover:text-gray-700'
+                }`}
+              data-testid={`featured-filter-${filter.toLowerCase()}`}
+            >
+              {filter}
+            </button>
+          ))}
+        </div>
+
+        {/* Properties Slider */}
+        <div
+          ref={sliderRef}
+          className="flex space-x-6 overflow-x-auto hide-scrollbar scroll-container pb-4"
+        >
+          {filteredProperties.map((property) => (
+            <div key={property.id} className="flex-none w-80 md:w-96">
+              <PropertyCard property={property} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// ============================================
+// SECTION 8: WHY CHOOSE CARIA
+// ============================================
+const WhyChooseSection = () => {
+  return (
+    <section className="relative" data-testid="why-choose-section">
+      {/* Top Textured Background */}
+      <div
+        className="h-64 bg-cover bg-center"
+        style={{
+          backgroundColor: '#E6F4F4',
+          backgroundImage: `url('https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1920&h=400&fit=crop&q=30')`,
+          backgroundBlendMode: 'overlay'
+        }}
+      />
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-6 -mt-32">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+          {/* Left: Image */}
+          <div className="relative">
+            <img
+              src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop"
+              alt="Luxury Interior"
+              className="w-full h-[400px] md:h-[500px] object-cover rounded-lg shadow-xl"
+            />
+          </div>
+
+          {/* Right: Content */}
+          <div className="bg-white p-8 md:p-12 rounded-lg shadow-lg">
+            <h2 className="font-serif text-2xl md:text-3xl text-caria-slate uppercase tracking-wide leading-snug mb-4" data-testid="why-choose-title">
+              Tailored Real Estate Services & Coastal Luxury Homes
+            </h2>
+            <h3 className="text-lg font-medium text-caria-slate mb-6">
+              Why choose Caria Estates?
+            </h3>
+            <p className="text-gray-600 text-sm leading-relaxed mb-6">
+              We provide personal and flawless service to our selling and buying customers.
+              All of our property advisors have a profound knowledge and understanding of
+              the Northern Cyprus real estate market with many years of experience. We want
+              to make the process as easy as possible for all of our customers, whether
+              you are seeking a permanent residence, vacation home, or investment property.
+            </p>
+            <p className="text-gray-600 text-sm leading-relaxed">
+              Our commitment to excellence, transparency, and client satisfaction sets us
+              apart. We offer end-to-end support from property search to legal completion,
+              ensuring your journey to owning property in Northern Cyprus is seamless.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Spacer */}
+      <div className="h-24 bg-white" />
+    </section>
+  );
+};
+
+// ============================================
+// SECTION 9: BLOG SLIDER
+// ============================================
+const BlogSlider = () => {
+  const sliderRef = useRef(null);
+
+  const scroll = (direction) => {
+    if (sliderRef.current) {
+      const scrollAmount = 320;
+      sliderRef.current.scrollBy({
+        left: direction === 'right' ? scrollAmount : -scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  return (
+    <section className="bg-caria-mint py-16 md:py-24" data-testid="blog-section">
+      <div className="max-w-7xl mx-auto px-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-10">
+          <h2 className="font-serif text-3xl md:text-4xl text-caria-slate" data-testid="blog-title">
+            Get Inspired
+          </h2>
+
+          {/* Navigation Buttons */}
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => scroll('left')}
+              className="slider-nav-btn w-10 h-10 rounded-full border border-gray-500 flex items-center justify-center text-gray-600"
+              data-testid="blog-prev"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <button
+              onClick={() => scroll('right')}
+              className="slider-nav-btn w-10 h-10 rounded-full border border-gray-500 flex items-center justify-center text-gray-600"
+              data-testid="blog-next"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+        </div>
+
+        {/* Blog Cards Slider */}
+        <div
+          ref={sliderRef}
+          className="flex space-x-6 overflow-x-auto hide-scrollbar scroll-container pb-4"
+        >
+          {blogArticles.map((article) => (
+            <article
+              key={article.id}
+              className="blog-card flex-none w-72 bg-white rounded-lg overflow-hidden shadow-md cursor-pointer"
+              data-testid={`blog-card-${article.id}`}
+            >
+              <div className="aspect-square overflow-hidden">
+                <img
+                  src={article.image}
+                  alt={article.title}
+                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                />
+              </div>
+              <div className="p-5">
+                <h3 className="font-medium text-caria-slate text-sm mb-3 line-clamp-2">
+                  {article.title}
+                </h3>
+                <span className="text-xs hover:underline transition-colors" style={{ color: '#3BB2B8' }}>
+                  read article
+                </span>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// ============================================
+// SECTION 10: JOIN US SECTION
+// ============================================
+const JoinUsSection = () => {
+  return (
+    <section className="bg-white py-16 md:py-24" data-testid="join-us-section">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          {/* Left: Text Content */}
+          <div>
+            <h2 className="font-serif text-3xl md:text-4xl text-caria-slate mb-6" data-testid="join-us-title">
+              Join us!
+            </h2>
+            <p className="text-gray-600 leading-relaxed mb-6">
+              Are you an experienced agent with great knowledge of the real estate market
+              and the Northern Cyprus area? Are you looking for a modern and innovative agency?
+              If you share our passion for high-quality real estate services, do not hesitate
+              to contact us.
+            </p>
+            <p className="text-gray-600 leading-relaxed">
+              We are always looking for talented individuals to join our growing team.
+              Reach out to us at{' '}
+              <a
+                href="mailto:info@cariaestates.com"
+                className="hover:underline transition-colors"
+                style={{ color: '#3BB2B8' }}
+                data-testid="join-us-email"
+              >
+                info@cariaestates.com
+              </a>
+            </p>
+          </div>
+
+          {/* Right: Team Image */}
+          <div className="relative">
+            <img
+              src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=800&h=500&fit=crop"
+              alt="Caria Estates Team"
+              className="w-full h-auto rounded-lg shadow-lg"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// ============================================
+// SECTION 11: NEWSLETTER BAR
+// ============================================
+const NewsletterBar = () => {
+  const [email, setEmail] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // Handle newsletter subscription
+    console.log('Newsletter subscription:', email);
+    setEmail('');
+  };
+
+  return (
+    <section className="bg-caria-mint py-12 md:py-16" data-testid="newsletter-section">
+      <div className="max-w-5xl mx-auto px-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          {/* Text */}
+          <p className="text-caria-slate text-sm md:text-base max-w-md">
+            Subscribe and be the first to receive exclusive offers and updates.
+          </p>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="flex items-center gap-4">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Your email address"
+              className="newsletter-input bg-transparent px-0 py-2 text-sm w-64 placeholder-gray-500"
+              required
+              data-testid="newsletter-input"
+            />
+            <button
+              type="submit"
+              className="px-6 py-2 border border-caria-slate text-caria-slate text-xs tracking-wider uppercase hover:bg-caria-slate hover:text-white transition-colors"
+              data-testid="newsletter-submit"
+            >
+              Subscribe
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// ============================================
+// SECTION 12: PARTNER LOGOS
+// ============================================
+const PartnerLogos = () => {
+  const partners = [
+    { name: "Forbes Global Properties", img: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=200&h=100&fit=crop&q=60" },
+    { name: "Luxury Portfolio", img: "https://images.unsplash.com/photo-1582408921715-18e7806365c1?w=200&h=100&fit=crop&q=60" },
+    { name: "Leading Real Estate", img: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=200&h=100&fit=crop&q=60" },
+    { name: "Who's Who in Luxury", img: "https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=200&h=100&fit=crop&q=60" },
+    { name: "British Chambers", img: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=200&h=100&fit=crop&q=60" }
+  ];
+
+  return (
+    <section className="bg-white py-20 border-t border-gray-50" data-testid="partners-section">
+      <div className="max-w-[1440px] mx-auto px-8 lg:px-12">
+        <div className="flex flex-wrap items-center justify-between gap-12 opacity-50 hover:opacity-100 transition-opacity duration-700">
+          {partners.map((partner, idx) => (
+            <div key={idx} className="grayscale hover:grayscale-0 transition-all duration-500">
+              <img
+                src={partner.img}
+                alt={partner.name}
+                className="h-10 md:h-12 w-auto object-contain"
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// ============================================
+// SECTION 13: FOOTER
+// ============================================
+const Footer = ({ content }) => {
+  const getSetting = (key, defaultValue) => {
+    const setting = content?.find(c => c.content_key === key);
+    return setting ? setting.value_tr : defaultValue;
+  };
+
+  const address = getSetting('footer_address', '123 Harbor Road, Kyrenia\nNorthern Cyprus');
+  const phone = getSetting('footer_phone', '+90 548 123 4567');
+  const email = getSetting('footer_email', 'info@cariaestates.com');
+  const slogan = getSetting('footer_slogan', '"Beyond property, we deliver lifestyle. Northern Cyprus\'s premium real estate experience."');
+  const instagram = getSetting('social_instagram', 'https://instagram.com');
+  const facebook = getSetting('social_facebook', 'https://facebook.com');
+  const linkedin = getSetting('social_linkedin', 'https://linkedin.com');
+
+  return (
+    <footer className="bg-caria-slate text-white pt-24 pb-12 font-sans border-t border-white/5" data-testid="footer">
+      <div className="max-w-[1400px] mx-auto px-8 lg:px-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16 lg:gap-24 mb-20">
+          {/* Column 1: Brand */}
+          <div className="space-y-8">
+            <Link to="/" className="inline-block">
+              <img
+                src="/logo.png"
+                alt="Caria Estates"
+                className="h-16 w-auto brightness-0 invert"
+              />
+            </Link>
+            <p className="text-white/60 text-lg font-serif italic leading-relaxed max-w-xs">
+              {slogan}
+            </p>
+          </div>
+
+          {/* Column 2: Regions */}
+          <div className="space-y-8">
+            <h4 className="text-[10px] tracking-[0.4em] uppercase text-white/40 font-bold">LOCATIONS</h4>
+            <div className="grid grid-cols-1 gap-4">
+              <Link to="/properties?region=kyrenia" className="text-sm font-light text-white/70 hover:text-caria-turquoise transition-colors tracking-widest uppercase">Kyrenia</Link>
+              <Link to="/properties?region=esentepe" className="text-sm font-light text-white/70 hover:text-caria-turquoise transition-colors tracking-widest uppercase">Esentepe</Link>
+              <Link to="/properties?region=iskele" className="text-sm font-light text-white/70 hover:text-caria-turquoise transition-colors tracking-widest uppercase">Iskele</Link>
+              <Link to="/properties?region=famagusta" className="text-sm font-light text-white/70 hover:text-caria-turquoise transition-colors tracking-widest uppercase">Famagusta</Link>
+            </div>
+          </div>
+
+          {/* Column 3: Services */}
+          <div className="space-y-8">
+            <h4 className="text-[10px] tracking-[0.4em] uppercase text-white/40 font-bold">SERVICES</h4>
+            <div className="grid grid-cols-1 gap-4">
+              <Link to="/consulting-services" className="text-sm font-light text-white/70 hover:text-caria-turquoise transition-colors tracking-widest uppercase">Legal Consulting</Link>
+              <Link to="/after-sale-services" className="text-sm font-light text-white/70 hover:text-caria-turquoise transition-colors tracking-widest uppercase">After Sales</Link>
+              <Link to="/services#management" className="text-sm font-light text-white/70 hover:text-caria-turquoise transition-colors tracking-widest uppercase">Property Management</Link>
+              <Link to="/home-decoration" className="text-sm font-light text-white/70 hover:text-caria-turquoise transition-colors tracking-widest uppercase">Decoration Packages</Link>
+            </div>
+          </div>
+
+          {/* Column 4: Contact */}
+          <div className="space-y-8">
+            <h4 className="text-[10px] tracking-[0.4em] uppercase text-white/40 font-bold">CONTACT</h4>
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <p className="text-xs text-white/40 uppercase tracking-widest">Office</p>
+                <div className="text-sm font-light text-white/80 leading-relaxed whitespace-pre-line">
+                  {address}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs text-white/40 uppercase tracking-widest">Connect</p>
+                <p className="text-sm font-light text-white/80">{phone}</p>
+                <p className="text-sm font-light text-white/80">{email}</p>
+              </div>
+              <div className="flex space-x-6 pt-2">
+                <a href={instagram} target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-white transition-all transform hover:scale-110">
+                  <Instagram size={22} />
+                </a>
+                <a href={facebook} target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-white transition-all transform hover:scale-110">
+                  <Facebook size={22} />
+                </a>
+                <a href={linkedin} target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-white transition-all transform hover:scale-110">
+                  <Linkedin size={22} />
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+};
+
+// ============================================
+// SECTION 14: COPYRIGHT BAR
+// ============================================
+const CopyrightBar = () => {
+  return (
+    <div className="bg-caria-slate border-t border-white/5 py-8" data-testid="copyright">
+      <div className="max-w-[1400px] mx-auto px-8 lg:px-12">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 text-[10px] tracking-[0.2em] uppercase text-white/30">
+          <p>© 2025 Caria Estates. Crafted for Excellence.</p>
+          <div className="flex items-center space-x-8">
+            <Link to="/terms" className="hover:text-white transition-colors">Terms</Link>
+            <Link to="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================
+// HOME PAGE COMPONENT
+// ============================================
+const Home = () => {
+  const [activeRegion, setActiveRegion] = useState("DISCOVER ALL");
+  const [allProperties, setAllProperties] = useState([...properties]);
+  const [featured, setFeatured] = useState([...featuredProperties]);
+  const [sliders, setSliders] = useState([]);
+  const [guides, setGuides] = useState([]);
+  const [siteContent, setSiteContent] = useState([]);
+  const [homepageBlocks, setHomepageBlocks] = useState([]);
+  const [advisors, setAdvisors] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const fetchProperties = async () => {
+          const res = await axios.get(`${API}/properties`);
+          if (res.data && res.data.length > 0) {
+            setAllProperties(res.data);
+            setFeatured(res.data.filter(p => p.tag === 'PREMIUM' || p.tag === 'EXCLUSIVE'));
+          }
+        };
+
+        const fetchSliders = async () => {
+          const res = await axios.get(`${API}/cms/sliders`);
+          if (res.data) setSliders(res.data);
+        };
+
+        const fetchGuides = async () => {
+          const res = await axios.get(`${API}/cms/country-guides`);
+          if (res.data) setGuides(res.data);
+        };
+
+        const fetchContent = async () => {
+          const res = await axios.get(`${API}/cms/content`);
+          if (res.data) setSiteContent(res.data);
+        };
+
+        const fetchHomepage = async () => {
+          try {
+            const res = await axios.get(`${API}/cms/homepage`);
+            if (res.data) setHomepageBlocks(res.data);
+          } catch (e) {
+            console.error("Homepage blocks fetch failed", e);
+          }
+        };
+
+        const fetchAdvisors = async () => {
+          try {
+            const res = await axios.get(`${API}/advisors`);
+            if (res.data) setAdvisors(res.data);
+          } catch (e) {
+            console.error("Advisors fetch failed", e);
+          }
+        };
+
+        // Run all in parallel but independently
+        await Promise.allSettled([
+          fetchProperties(),
+          fetchSliders(),
+          fetchGuides(),
+          fetchContent(),
+          fetchHomepage(),
+          fetchAdvisors()
+        ]);
+
+      } catch (error) {
+        console.error("Error in home data fetching:", error);
+      }
+    };
+    fetchData();
+  }, []);
+
+  return (
+    <div className="min-h-screen">
+      <Hero sliders={sliders} content={siteContent} />
+      <IntroSection content={siteContent} />
+      <AdvancedSearchBar properties={allProperties} />
+      <RegionTabs activeRegion={activeRegion} setActiveRegion={setActiveRegion} />
+      <CuratedListings activeRegion={activeRegion} properties={allProperties} />
+
+      <ServicesSection blocks={homepageBlocks} />
+      <ContactAgentSlider advisors={advisors} />
+      <FeaturedPropertiesSlider featuredProperties={featured} />
+      <WhyChooseSection />
+      <BlogSlider />
+      <JoinUsSection />
+      <NewsletterBar />
+      <PartnerLogos />
+      <Footer content={siteContent} />
+      <CopyrightBar />
+    </div>
+  );
+};
+
+// ============================================
+// PLACEHOLDER PAGES
+// ============================================
+const PropertiesPage = () => {
+  const [allProperties, setAllProperties] = useState([]);
+  const [filteredProperties, setFilteredProperties] = useState([]);
+  const location = useLocation();
+
+  useEffect(() => {
+    const fetchAll = async () => {
+      try {
+        const response = await axios.get(`${API}/properties`);
+        const data = (response.data && response.data.length > 0) ? response.data : [...properties, ...featuredProperties];
+        setAllProperties(data);
+
+        // Handle query params
+        const params = new URLSearchParams(location.search);
+        const q = params.get('q');
+        const minP = params.get('minPrice');
+        const maxP = params.get('maxPrice');
+        const region = params.get('region');
+        const country = params.get('country');
+
+        let filtered = data;
+        if (q) {
+          filtered = filtered.filter(p =>
+            p.title.toLowerCase().includes(q.toLowerCase()) ||
+            p.location.toLowerCase().includes(q.toLowerCase())
+          );
+        }
+        if (minP) {
+          const min = parseInt(minP.replace(/[^0-9]/g, ''));
+          filtered = filtered.filter(p => parseInt(p.price.replace(/[^0-9]/g, '')) >= min);
+        }
+        if (maxP) {
+          const max = parseInt(maxP.replace(/[^0-9]/g, ''));
+          filtered = filtered.filter(p => parseInt(p.price.replace(/[^0-9]/g, '')) <= max);
+        }
+        if (region) {
+          filtered = filtered.filter(p => p.region?.toLowerCase() === region.toLowerCase());
+        }
+        if (country) {
+          // If country logic is needed, add here
+          filtered = filtered.filter(p => p.location?.toLowerCase().includes(country.toLowerCase()));
+        }
+
+        setFilteredProperties(filtered);
+      } catch (e) {
+        console.error(e);
+        setAllProperties([...properties, ...featuredProperties]);
+        setFilteredProperties([...properties, ...featuredProperties]);
+      }
+    };
+    fetchAll();
+  }, [location.search]);
+
+  return (
+    <div className="min-h-screen bg-white">
+      <div className="h-20" />
+      <section className="bg-caria-mint py-16">
+        <div className="max-w-7xl mx-auto px-6">
+          <h1 className="font-serif text-4xl text-caria-slate mb-4">Properties</h1>
+          <p className="text-gray-600 tracking-wider uppercase text-sm">
+            {filteredProperties.length} listings found
+          </p>
+        </div>
+      </section>
+
+      <div className="max-w-7xl mx-auto px-6 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {filteredProperties.map((property) => (
+            <PropertyCard key={property.id} property={property} />
+          ))}
+          {filteredProperties.length === 0 && (
+            <div className="col-span-full py-20 text-center">
+              <p className="text-gray-400 text-lg">No properties match your search criteria.</p>
+              <Link to="/properties" className="text-caria-turquoise hover:underline mt-4 inline-block">View all properties</Link>
+            </div>
+          )}
+        </div>
+      </div>
+      <Footer />
+      <CopyrightBar />
+    </div>
+  );
+};
+
+// ============================================
+// PROPERTY DETAIL PAGE
+// ============================================
+const PropertyDetailPage = () => {
+  const { slug } = useParams();
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [property, setProperty] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [relatedProperties, setRelatedProperties] = useState([]);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    message: "I would like to schedule a viewing for this property."
+  });
+
+  useEffect(() => {
+    const fetchProperty = async () => {
+      setLoading(true);
+      try {
+        const response = await axios.get(`${API}/properties/${slug}`);
+        if (response.data) {
+          setProperty(response.data);
+
+          // Fetch all for related
+          const allRes = await axios.get(`${API}/properties`);
+          const related = allRes.data.filter(p => p.region === response.data.region && p.slug !== slug).slice(0, 3);
+          setRelatedProperties(related);
+        }
+      } catch (err) {
+        console.error("Error fetching property:", err);
+        // Fallback
+        const allStatic = [...properties, ...featuredProperties];
+        const staticProp = allStatic.find(p => p.slug === slug);
+        setProperty(staticProp);
+        if (staticProp) {
+          setRelatedProperties(allStatic.filter(p => p.region === staticProp.region && p.slug !== slug).slice(0, 3));
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProperty();
+  }, [slug]);
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+
+  if (!property) {
+    return (
+      <div className="min-h-screen bg-white pt-20">
+        <div className="max-w-7xl mx-auto px-6 py-16 text-center">
+          <h1 className="font-serif text-4xl text-caria-slate mb-4">Property Not Found</h1>
+          <p className="text-gray-600 mb-8">The property you&apos;re looking for doesn&apos;t exist.</p>
+          <Link to="/buy" className="inline-block px-8 py-3 bg-[#0F5E63] text-white text-sm tracking-wider uppercase rounded-sm hover:bg-[#0d4f53] transition-all">
+            View All Properties
+          </Link>
+        </div>
+        <Footer />
+        <CopyrightBar />
+      </div>
+    );
+  }
+
+  const images = property.images || [property.image];
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    alert("Thank you! We will contact you shortly.");
+    // In production, this would send to backend
+  };
+
+  return (
+    <div className="min-h-screen bg-white">
+      <div className="h-16 md:h-20" />
+
+      {/* HERO SECTION - Image Slider */}
+      <section className="relative h-[70vh] md:h-[80vh] mt-16 md:mt-20 bg-caria-mint">
+        <div className="relative w-full h-full">
+          {/* Main Image */}
+          <img
+            src={images[currentImageIndex] || "/assets/images/placeholder-teal.png"}
+            alt={property.title}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = "/assets/images/placeholder-teal.png";
+            }}
+          />
+
+          {/* Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
+          {/* Tag Badge */}
+          <div className="absolute top-6 left-6 bg-white px-4 py-2 text-xs font-medium tracking-wider text-caria-slate rounded">
+            {property.tag}
+          </div>
+
+          {/* Navigation Arrows */}
+          {images.length > 1 && (
+            <>
+              <button
+                onClick={prevImage}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 hover:bg-white rounded-full flex items-center justify-center transition-all shadow-lg"
+              >
+                <ChevronLeft size={24} className="text-caria-slate" />
+              </button>
+              <button
+                onClick={nextImage}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 hover:bg-white rounded-full flex items-center justify-center transition-all shadow-lg"
+              >
+                <ChevronRight size={24} className="text-caria-slate" />
+              </button>
+            </>
+          )}
+
+          {/* Image Counter */}
+          {images.length > 1 && (
+            <div className="absolute bottom-6 right-6 bg-black/70 px-4 py-2 rounded text-white text-sm">
+              {currentImageIndex + 1} / {images.length}
+            </div>
+          )}
+
+          {/* Property Info Overlay */}
+          <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
+            <div className="max-w-7xl mx-auto">
+              <p className="text-[#CCEBEA] text-sm tracking-wider uppercase mb-2">
+                {property.location}
+              </p>
+              <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl text-white font-light mb-4">
+                {property.title}
+              </h1>
+              <p className="text-3xl md:text-4xl font-light text-white">
+                {property.price}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* QUICK INFO BAR */}
+      <section className="bg-[#F2EDE8] border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+            <div className="flex items-center gap-3">
+              <Bed size={24} className="text-[#0F5E63]" />
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wider">Bedrooms</p>
+                <p className="text-lg font-medium text-caria-slate">{property.beds}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Bath size={24} className="text-[#0F5E63]" />
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wider">Bathrooms</p>
+                <p className="text-lg font-medium text-caria-slate">{property.baths}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Square size={24} className="text-[#0F5E63]" />
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wider">Built Size</p>
+                <p className="text-lg font-medium text-caria-slate">{property.area} m²</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Maximize2 size={24} className="text-[#0F5E63]" />
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wider">Plot Size</p>
+                <p className="text-lg font-medium text-caria-slate">{property.plotSize || property.area} m²</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <HomeIcon size={24} className="text-[#0F5E63]" />
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wider">Reference</p>
+                <p className="text-lg font-medium text-caria-slate">{property.reference || `CE-${property.id}`}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* MAIN CONTENT - Two Column Layout */}
+      <section className="py-16 md:py-20">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            {/* LEFT COLUMN - Content */}
+            <div className="lg:col-span-2 space-y-12">
+              {/* Description */}
+              <div>
+                <h2 className="font-serif text-3xl text-caria-slate mb-6">Description</h2>
+                <div className="text-gray-600 leading-relaxed space-y-4">
+                  {property.description ? (
+                    property.description.split('\n').map((para, idx) => (
+                      <p key={idx}>{para}</p>
+                    ))
+                  ) : (
+                    <p>This exceptional property offers luxury living in one of Northern Cyprus&apos;s most sought-after locations.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Features */}
+              {property.features && (
+                <div>
+                  <h2 className="font-serif text-3xl text-caria-slate mb-6">Features</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {property.features.map((feature, idx) => (
+                      <div key={idx} className="flex items-center gap-3">
+                        <Check size={20} className="text-[#0F5E63] flex-shrink-0" />
+                        <span className="text-gray-600">{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Location Map */}
+              <div>
+                <h2 className="font-serif text-3xl text-caria-slate mb-6">Location</h2>
+                <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                  <iframe
+                    src={`https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3153.3865437687426!2d33.3199!3d35.3382!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzXCsDIwJzE3LjUiTiAzM8KwMTknMTEuNiJF!5e0!3m2!1sen!2s!4v1234567890`}
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen=""
+                    loading="lazy"
+                    title="Property Location"
+                  />
+                </div>
+              </div>
+
+              {/* Download Brochure */}
+              <div>
+                <button className="flex items-center gap-3 px-6 py-3 border-2 border-[#0F5E63] text-[#0F5E63] rounded-sm hover:bg-[#0F5E63] hover:text-white transition-all">
+                  <Download size={20} />
+                  <span className="font-medium tracking-wider uppercase text-sm">Download Brochure</span>
+                </button>
+              </div>
+            </div>
+
+            {/* RIGHT COLUMN - Sidebar */}
+            <div className="lg:col-span-1 space-y-8">
+              {/* Contact Form */}
+              <div className="bg-[#F2EDE8] p-6 md:p-8 rounded-lg">
+                <h3 className="font-serif text-2xl text-caria-slate mb-6">Request Viewing</h3>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <input
+                      type="text"
+                      name="name"
+                      placeholder="Your Name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-sm text-sm focus:outline-none focus:border-[#0F5E63]"
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="email"
+                      name="email"
+                      placeholder="Email Address"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-sm text-sm focus:outline-none focus:border-[#0F5E63]"
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="tel"
+                      name="phone"
+                      placeholder="Phone Number"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-sm text-sm focus:outline-none focus:border-[#0F5E63]"
+                    />
+                  </div>
+                  <div>
+                    <textarea
+                      name="message"
+                      rows="4"
+                      placeholder="Message"
+                      value={formData.message}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-sm text-sm focus:outline-none focus:border-[#0F5E63] resize-none"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full px-6 py-4 bg-[#0F5E63] text-white text-sm tracking-wider uppercase rounded-sm hover:bg-[#0d4f53] transition-all"
+                  >
+                    Request Viewing
+                  </button>
+                </form>
+              </div>
+
+              {/* Agent Card */}
+              <div className="bg-white border border-gray-200 p-6 rounded-lg">
+                <h3 className="font-medium text-caria-slate mb-4">Your Assigned Agent</h3>
+                <div className="flex items-center gap-4 mb-4">
+                  <img
+                    src="/hakan-okur.png"
+                    alt="Hakan Okur"
+                    className="w-16 h-16 rounded-full object-cover shadow-sm"
+                  />
+                  <div>
+                    <p className="font-medium text-caria-slate">Hakan Okur</p>
+                    <p className="text-sm text-gray-500">Property Advisor</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <a
+                    href="tel:+905481234567"
+                    className="flex items-center gap-3 text-gray-600 hover:text-[#0F5E63] transition-colors"
+                  >
+                    <Phone size={18} />
+                    <span className="text-sm">+90 548 123 4567</span>
+                  </a>
+                  <a
+                    href="https://wa.me/905481234567"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 px-4 py-2 bg-[#25D366] text-white rounded-sm hover:bg-[#20bd5a] transition-all justify-center"
+                  >
+                    <MessageSquare size={18} />
+                    <span className="text-sm font-medium">WhatsApp</span>
+                  </a>
+                  <button
+                    onClick={() => {
+                      setFormData({ ...formData, message: "I am interested in a viewing trip for property " + (property.reference || property.id) });
+                    }}
+                    className="w-full mt-4 flex items-center gap-3 px-4 py-3 bg-[#0F5E63] text-white rounded-sm hover:bg-[#0d4f53] transition-all justify-center"
+                  >
+                    <Calendar size={18} />
+                    <span className="text-sm font-medium uppercase tracking-wider">Request a Viewing Trip</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* RELATED PROPERTIES */}
+      {relatedProperties.length > 0 && (
+        <section className="bg-[#CCEBEA] py-16 md:py-20">
+          <div className="max-w-7xl mx-auto px-6">
+            <h2 className="font-serif text-3xl md:text-4xl text-caria-slate mb-10">You may also like</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {relatedProperties.map((prop) => (
+                <PropertyCard key={prop.id} property={prop} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      <Footer />
+      <CopyrightBar />
+    </div>
+  );
+};
+
+// ============================================
+// BUY / FOR SALE PAGE
+// ============================================
+const BuyPage = () => {
+  // Filter states
+  const [regionFilter, setRegionFilter] = useState("ALL");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [beds, setBeds] = useState("");
+  const [sort, setSort] = useState("newest");
+  const [allProps, setAllProps] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get(`${API}/properties`);
+        if (response.data && response.data.length > 0) {
+          setAllProps(response.data);
+        } else {
+          setAllProps([...properties, ...featuredProperties]);
+        }
+      } catch (e) {
+        console.error(e);
+        setAllProps([...properties, ...featuredProperties]);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // Helper function to extract numeric price
+  const extractPrice = (priceStr) => {
+    return parseInt(priceStr.replace(/[^0-9]/g, ''));
+  };
+
+  // Filter logic
+  const filtered = allProps.filter(property => {
+    // Region filter
+    if (regionFilter !== "ALL" && property.region !== regionFilter) {
+      return false;
+    }
+
+    // Price filters
+    const propPrice = extractPrice(property.price);
+    if (minPrice && propPrice < parseInt(minPrice)) {
+      return false;
+    }
+    if (maxPrice && propPrice > parseInt(maxPrice)) {
+      return false;
+    }
+
+    // Bedroom filter
+    if (beds && property.beds < parseInt(beds)) {
+      return false;
+    }
+
+    return true;
+  });
+
+  // Sort logic
+  const sorted = [...filtered].sort((a, b) => {
+    if (sort === "price-asc") {
+      return extractPrice(a.price) - extractPrice(b.price);
+    }
+    if (sort === "price-desc") {
+      return extractPrice(b.price) - extractPrice(a.price);
+    }
+    return 0; // newest - keep default order
+  });
+
+  // Clear all filters
+  const clearFilters = () => {
+    setRegionFilter("ALL");
+    setMinPrice("");
+    setMaxPrice("");
+    setBeds("");
+    setSort("newest");
+  };
+
+  return (
+    <div className="min-h-screen bg-white">
+      <div className="h-16 md:h-20" />
+
+      {/* Hero / Header Strip */}
+      <section className="bg-caria-mint pt-24 pb-10">
+        <div className="max-w-7xl mx-auto px-6">
+          <p className="text-xs tracking-[0.3em] uppercase text-gray-500 mb-4">
+            CARIA ESTATES · NORTHERN CYPRUS
+          </p>
+          <h1 className="font-serif text-3xl md:text-4xl text-caria-slate mb-4">
+            Properties for Sale in Northern Cyprus
+          </h1>
+          <p className="text-gray-600 max-w-3xl">
+            Browse our exclusive collection of villas, apartments, and investment opportunities
+            across Kyrenia, Iskele, and Famagusta. Discover your dream Mediterranean property with
+            Caria Estates.
+          </p>
+        </div>
+      </section>
+
+      {/* Filter Bar Section */}
+      <section className="bg-caria-mint border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+            {/* Left side - Filters */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 flex-1">
+              {/* Region Select */}
+              <div>
+                <label className="text-xs text-gray-500 tracking-wider uppercase mb-2 block">
+                  Region
+                </label>
+                <select
+                  value={regionFilter}
+                  onChange={(e) => setRegionFilter(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-sm text-sm bg-white focus:outline-none focus:border-caria-turquoise"
+                >
+                  <option value="ALL">All regions</option>
+                  <option value="KYRENIA">Kyrenia</option>
+                  <option value="ISKELE">Iskele</option>
+                  <option value="FAMAGUSTA">Famagusta</option>
+                </select>
+              </div>
+
+              {/* Min Price */}
+              <div>
+                <label className="text-xs text-gray-500 tracking-wider uppercase mb-2 block">
+                  Min Price (£)
+                </label>
+                <input
+                  type="number"
+                  value={minPrice}
+                  onChange={(e) => setMinPrice(e.target.value)}
+                  placeholder="Min"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-sm text-sm bg-white focus:outline-none focus:border-caria-turquoise"
+                />
+              </div>
+
+              {/* Max Price */}
+              <div>
+                <label className="text-xs text-gray-500 tracking-wider uppercase mb-2 block">
+                  Max Price (£)
+                </label>
+                <input
+                  type="number"
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(e.target.value)}
+                  placeholder="Max"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-sm text-sm bg-white focus:outline-none focus:border-caria-turquoise"
+                />
+              </div>
+
+              {/* Min Bedrooms */}
+              <div>
+                <label className="text-xs text-gray-500 tracking-wider uppercase mb-2 block">
+                  Min Bedrooms
+                </label>
+                <input
+                  type="number"
+                  value={beds}
+                  onChange={(e) => setBeds(e.target.value)}
+                  placeholder="Any"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-sm text-sm bg-white focus:outline-none focus:border-caria-turquoise"
+                />
+              </div>
+            </div>
+
+            {/* Right side - Sort & Clear */}
+            <div className="flex flex-col sm:flex-row gap-4 lg:ml-4">
+              {/* Sort By */}
+              <div>
+                <label className="text-xs text-gray-500 tracking-wider uppercase mb-2 block">
+                  Sort By
+                </label>
+                <select
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-sm text-sm bg-white focus:outline-none focus:border-caria-turquoise"
+                >
+                  <option value="newest">Newest</option>
+                  <option value="price-asc">Price: Low to High</option>
+                  <option value="price-desc">Price: High to Low</option>
+                </select>
+              </div>
+
+              {/* Clear Filters Button */}
+              <div className="flex items-end">
+                <button
+                  onClick={clearFilters}
+                  className="px-6 py-3 border border-caria-slate text-caria-slate text-xs tracking-wider uppercase rounded-sm hover:bg-caria-slate hover:text-white transition-all whitespace-nowrap"
+                >
+                  Clear Filters
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Results Section */}
+      <section className="bg-white py-10 md:py-14">
+        <div className="max-w-7xl mx-auto px-6">
+          {/* Top Info Row */}
+          <div className="flex items-center justify-between mb-8">
+            <p className="text-gray-600">
+              Showing <span className="font-medium text-caria-slate">{sorted.length}</span> properties for sale
+            </p>
+            <p className="text-xs tracking-[0.2em] uppercase text-gray-400 hidden md:block">
+              CARIA ESTATES · FOR SALE
+            </p>
+          </div>
+
+          {/* Properties Grid */}
+          {sorted.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {sorted.map((property) => (
+                <PropertyCard key={property.id} property={property} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16">
+              <p className="text-gray-500 text-lg">No properties match your search criteria.</p>
+              <button
+                onClick={clearFilters}
+                className="mt-4 px-6 py-3 text-caria-turquoise text-sm tracking-wider uppercase hover:underline"
+              >
+                Clear all filters
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <Footer />
+      <CopyrightBar />
+    </div>
+  );
+};
+
+// ============================================
+// PROJECTS OVERVIEW PAGE
+// ============================================
+const ProjectsOverviewPage = () => {
+  return (
+    <div className="min-h-screen bg-white">
+      <div className="h-16 md:h-20" />
+
+      {/* HERO SECTION */}
+      <section className="relative h-[60vh] md:h-[70vh] mt-16 md:mt-20 overflow-hidden">
+        <div className="absolute inset-0">
+          <img
+            src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1920&h=1080&fit=crop"
+            alt="Caria Developments"
+            className="w-full h-full object-cover filter blur-sm"
+          />
+          <div className="absolute inset-0 bg-black/40" />
+        </div>
+
+        <div className="relative h-full flex items-center justify-center text-center px-6">
+          <div className="max-w-4xl">
+            <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl text-white font-light mb-6 animate-fade-in">
+              Our Developments
+            </h1>
+            <p className="text-xl md:text-2xl text-white/90 font-light animate-fade-in" style={{ animationDelay: '0.2s' }}>
+              Premium Projects by Caria Estates
+            </p>
+            <p className="text-base md:text-lg text-white/80 mt-6 max-w-2xl mx-auto animate-fade-in" style={{ animationDelay: '0.4s' }}>
+              Explore our exclusive collection of residential and investment developments in Northern Cyprus.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* PROJECT CARDS GRID */}
+      <section className="py-20 md:py-32">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
+            {projects.map((project, index) => (
+              <Link
+                key={project.id}
+                to={`/projects/${project.slug}`}
+                className="group animate-fade-in"
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <div className="overflow-hidden bg-white">
+                  {/* Project Image */}
+                  <div className="relative h-72 overflow-hidden bg-caria-mint">
+                    <img
+                      src={project.image || "/assets/images/placeholder-teal.png"}
+                      alt={project.name}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "/assets/images/placeholder-teal.png";
+                      }}
+                    />
+                  </div>
+
+                  {/* Project Info */}
+                  <div className="py-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-serif text-2xl text-caria-slate group-hover:text-[#0F5E63] transition-colors">
+                        {project.name}
+                      </h3>
+                      <ChevronRight
+                        size={20}
+                        className="text-gray-400 group-hover:text-[#0F5E63] transition-colors"
+                      />
+                    </div>
+                    <p className="text-sm text-gray-500 tracking-wider uppercase mb-3">
+                      {project.location}
+                    </p>
+                    <p className="text-gray-600 leading-relaxed">
+                      {project.description}
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION DIVIDER */}
+      < div className="border-t border-gray-100" />
+
+      {/* WHY INVEST WITH CARIA SECTION */}
+      < section className="py-20 md:py-32 bg-[#F2EDE8]" >
+        <div className="max-w-7xl mx-auto px-6">
+          <h2 className="font-serif text-3xl md:text-4xl text-center text-caria-slate mb-16">
+            Why Invest With Caria
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+            {/* Feature 1 */}
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 mb-6 border-2 border-[#0F5E63] rounded-full">
+                <svg className="w-8 h-8 text-[#0F5E63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              </div>
+              <h3 className="font-medium text-lg text-caria-slate mb-3">
+                Strong ROI Opportunities
+              </h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Premium locations with proven investment returns and rental yields
+              </p>
+            </div>
+
+            {/* Feature 2 */}
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 mb-6 border-2 border-[#0F5E63] rounded-full">
+                <MapPin className="w-8 h-8 text-[#0F5E63]" />
+              </div>
+              <h3 className="font-medium text-lg text-caria-slate mb-3">
+                Prime Locations
+              </h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Strategic developments in the most desirable areas of Northern Cyprus
+              </p>
+            </div>
+
+            {/* Feature 3 */}
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 mb-6 border-2 border-[#0F5E63] rounded-full">
+                <svg className="w-8 h-8 text-[#0F5E63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="font-medium text-lg text-caria-slate mb-3">
+                Scandinavian-Quality
+              </h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Premium construction standards with Nordic design principles
+              </p>
+            </div>
+
+            {/* Feature 4 */}
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 mb-6 border-2 border-[#0F5E63] rounded-full">
+                <svg className="w-8 h-8 text-[#0F5E63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <h3 className="font-medium text-lg text-caria-slate mb-3">
+                Full Investment Consultancy
+              </h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Expert guidance through every step of your investment journey
+              </p>
+            </div>
+          </div>
+        </div>
+      </section >
+
+      {/* CONTACT CTA BLOCK */}
+      < section className="py-20 md:py-24 bg-white" >
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-8 border border-gray-200 rounded-lg p-10 md:p-16">
+            <div className="text-center lg:text-left">
+              <h2 className="font-serif text-3xl md:text-4xl text-caria-slate mb-4">
+                Interested in our developments?
+              </h2>
+              <p className="text-gray-600 text-lg">
+                Contact our team to learn more about investment opportunities.
+              </p>
+            </div>
+            <Link
+              to="/contact"
+              className="px-10 py-4 bg-[#0F5E63] text-white text-sm tracking-wider uppercase rounded-sm hover:bg-[#0d4f53] transition-all whitespace-nowrap"
+            >
+              Get in Touch
+            </Link>
+          </div>
+        </div>
+      </section >
+
+      <Footer />
+      <CopyrightBar />
+    </div >
+  );
+};
+
+// ============================================
+// PROJECT DETAIL PAGE
+// ============================================
+const ProjectDetailPage = () => {
+  const { slug } = useParams();
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    message: "I'm interested in learning more about this development.",
+    consent: false
+  });
+
+  // Find project by slug
+  const project = projects.find(p => p.slug === slug);
+
+  // Get related projects (exclude current)
+  const relatedProjects = projects.filter(p => p.id !== project?.id).slice(0, 3);
+
+  if (!project) {
+    return (
+      <div className="min-h-screen bg-white pt-20">
+        <div className="h-16 md:h-20" />
+        <div className="max-w-7xl mx-auto px-6 py-16 text-center">
+          <h1 className="font-serif text-4xl text-caria-slate mb-4">Project Not Found</h1>
+          <p className="text-gray-600 mb-8">The project you&apos;re looking for doesn&apos;t exist.</p>
+          <Link to="/projects" className="inline-block px-8 py-3 bg-[#0F5E63] text-white text-sm tracking-wider uppercase rounded-sm hover:bg-[#0d4f53] transition-all">
+            View All Projects
+          </Link>
+        </div>
+        <Footer />
+        <CopyrightBar />
+      </div>
+    );
+  }
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData({
+      ...formData,
+      [name]: type === 'checkbox' ? checked : value
+    });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    alert("Thank you for your inquiry! We will contact you shortly.");
+  };
+
+  const scrollToUnits = () => {
+    document.getElementById('units-section')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  return (
+    <div className="min-h-screen bg-white">
+      <div className="h-16 md:h-20" />
+
+      {/* 1) HERO SECTION - FULL SCREEN */}
+      <section className="relative h-screen bg-caria-mint">
+        <div className="absolute inset-0">
+          <img
+            src={project.heroImage || project.image || "/assets/images/placeholder-teal.png"}
+            alt={project.name}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = "/assets/images/placeholder-teal.png";
+            }}
+          />
+          <div className="absolute inset-0 bg-black/30" />
+        </div>
+
+        <div className="relative h-full flex flex-col items-center justify-center text-center px-6">
+          <p className="text-white/90 text-xs md:text-sm tracking-[0.3em] uppercase mb-4 animate-fade-in">
+            CARIA ESTATES · DEVELOPMENT
+          </p>
+          <h1 className="font-serif text-4xl md:text-5xl lg:text-7xl text-white font-light mb-6 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+            {project.name}
+          </h1>
+          <p className="text-xl md:text-2xl text-white/90 font-light mb-4 animate-fade-in" style={{ animationDelay: '0.4s' }}>
+            {project.tagline || project.description}
+          </p>
+          <p className="text-sm md:text-base text-white/80 tracking-wider animate-fade-in" style={{ animationDelay: '0.6s' }}>
+            {project.fullLocation || `${project.location} · Northern Cyprus`}
+          </p>
+        </div>
+
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce">
+          <div className="flex flex-col items-center text-white/70">
+            <span className="text-xs tracking-wider uppercase mb-2">Scroll to explore</span>
+            <ChevronDown size={20} />
+          </div>
+        </div>
+      </section>
+
+      {/* 2) INTRO / STORY SECTION */}
+      <section className="py-20 md:py-32">
+        <div className="max-w-3xl mx-auto px-6">
+          <h2 className="font-serif text-3xl md:text-4xl text-caria-slate mb-8 text-center">
+            About the development
+          </h2>
+          <div className="text-gray-600 leading-relaxed space-y-6 text-lg">
+            {project.story ? (
+              project.story.split('\n').map((para, idx) => (
+                <p key={idx}>{para}</p>
+              ))
+            ) : (
+              <p>{project.fullDescription}</p>
+            )}
+          </div>
+          <div className="text-center mt-12">
+            <button
+              onClick={scrollToUnits}
+              className="inline-flex items-center gap-2 px-8 py-4 bg-[#0F5E63] text-white text-sm tracking-wider uppercase rounded-sm hover:bg-[#0d4f53] transition-all"
+            >
+              View available units
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* 3) KEY FACTS STRIP */}
+      <section className="py-16 bg-[#CCEBEA]">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+            {project.keyFacts && (
+              <>
+                <div className="text-center p-6 bg-white rounded-lg">
+                  <Building2 className="w-8 h-8 text-[#0F5E63] mx-auto mb-3" />
+                  <p className="text-sm text-gray-500 uppercase tracking-wider mb-2">Units</p>
+                  <p className="font-medium text-caria-slate">{project.keyFacts.units}</p>
+                </div>
+                <div className="text-center p-6 bg-white rounded-lg">
+                  <Bed className="w-8 h-8 text-[#0F5E63] mx-auto mb-3" />
+                  <p className="text-sm text-gray-500 uppercase tracking-wider mb-2">Bedrooms</p>
+                  <p className="font-medium text-caria-slate">{project.keyFacts.bedrooms}</p>
+                </div>
+                <div className="text-center p-6 bg-white rounded-lg">
+                  <Calendar className="w-8 h-8 text-[#0F5E63] mx-auto mb-3" />
+                  <p className="text-sm text-gray-500 uppercase tracking-wider mb-2">Completion</p>
+                  <p className="font-medium text-caria-slate">{project.keyFacts.completion}</p>
+                </div>
+                <div className="text-center p-6 bg-white rounded-lg">
+                  <span className="text-3xl text-[#0F5E63] mx-auto mb-3 block">£</span>
+                  <p className="text-sm text-gray-500 uppercase tracking-wider mb-2">From</p>
+                  <p className="font-medium text-caria-slate">{project.keyFacts.priceFrom}</p>
+                </div>
+                <div className="text-center p-6 bg-white rounded-lg">
+                  <HomeIcon className="w-8 h-8 text-[#0F5E63] mx-auto mb-3" />
+                  <p className="text-sm text-gray-500 uppercase tracking-wider mb-2">Developer</p>
+                  <p className="font-medium text-caria-slate">{project.keyFacts.developer}</p>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* 4) APARTMENTS / UNITS OVERVIEW */}
+      <section id="units-section" className="py-20 md:py-32 bg-[#F2EDE8]">
+        <div className="max-w-7xl mx-auto px-6">
+          <h2 className="font-serif text-3xl md:text-4xl text-caria-slate mb-6 text-center">
+            Apartments & Floor Plans
+          </h2>
+          <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
+            Choose from a variety of apartment types designed for modern Mediterranean living.
+          </p>
+
+          {project.unitTypes && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+              {project.unitTypes.map((unit, idx) => (
+                <div key={idx} className="bg-white p-8 rounded-lg">
+                  <h3 className="font-serif text-2xl text-caria-slate mb-4">{unit.type}</h3>
+                  <div className="space-y-3 mb-6">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-500 text-sm">Size</span>
+                      <span className="font-medium text-caria-slate">{unit.size}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-500 text-sm">From</span>
+                      <span className="font-medium text-[#0F5E63]">{unit.priceFrom}</span>
+                    </div>
+                    {unit.note && (
+                      <div className="pt-3 border-t border-gray-100">
+                        <p className="text-sm text-gray-600 italic">{unit.note}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="text-center">
+            <button className="inline-flex items-center gap-2 px-8 py-4 border-2 border-[#0F5E63] text-[#0F5E63] text-sm tracking-wider uppercase rounded-sm hover:bg-[#0F5E63] hover:text-white transition-all">
+              <Download size={18} />
+              Download brochure / floorplans
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* 5) AMENITIES / LIFESTYLE SECTION */}
+      {project.amenities && (
+        <section className="py-20 md:py-32">
+          <div className="max-w-7xl mx-auto px-6">
+            <h2 className="font-serif text-3xl md:text-4xl text-caria-slate mb-12 text-center">
+              Amenities & Common Areas
+            </h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div className="text-gray-600 leading-relaxed space-y-6">
+                {project.amenities.split('\n').map((para, idx) => (
+                  <p key={idx}>{para}</p>
+                ))}
+              </div>
+              {project.amenityImages && (
+                <div className="grid grid-cols-2 gap-4">
+                  {project.amenityImages.map((img, idx) => (
+                    <img
+                      key={idx}
+                      src={img}
+                      alt={`Amenity ${idx + 1}`}
+                      className="w-full h-64 object-cover rounded-lg"
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 6) LOCATION SECTION */}
+      {project.locationInfo && (
+        <section className="py-20 md:py-32 bg-white">
+          <div className="max-w-4xl mx-auto px-6">
+            <h2 className="font-serif text-3xl md:text-4xl text-caria-slate mb-12 text-center">
+              Location
+            </h2>
+            <div className="text-gray-600 leading-relaxed space-y-6 text-lg mb-12">
+              {project.locationInfo.split('\n').map((para, idx) => (
+                <p key={idx}>{para}</p>
+              ))}
+            </div>
+            <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
+              <img
+                src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=1200&h=675&fit=crop"
+                alt="Location Map"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 7) IMAGE STRIP / GALLERY */}
+      {project.galleryImages && (
+        <section className="py-20 md:py-32 bg-[#F2EDE8]">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {project.galleryImages.map((img, idx) => (
+                <div key={idx} className="aspect-[4/3] overflow-hidden rounded-lg">
+                  <img
+                    src={img}
+                    alt={`Gallery ${idx + 1}`}
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 8) INVESTOR / USE CASE SECTION */}
+      {project.investmentInfo && (
+        <section className="py-20 md:py-32">
+          <div className="max-w-3xl mx-auto px-6">
+            <h2 className="font-serif text-3xl md:text-4xl text-caria-slate mb-12 text-center">
+              For living or investment
+            </h2>
+            <div className="text-gray-600 leading-relaxed space-y-6 text-lg">
+              {project.investmentInfo.split('\n').map((para, idx) => (
+                <p key={idx}>{para}</p>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 9) PROJECT CONTACT FORM */}
+      <section className="py-20 md:py-32 bg-[#CCEBEA]">
+        <div className="max-w-2xl mx-auto px-6">
+          <h2 className="font-serif text-3xl md:text-4xl text-caria-slate mb-6 text-center">
+            Interested in this development?
+          </h2>
+          <p className="text-gray-600 text-center mb-12">
+            Leave your details and our Caria Estates advisors will contact you about availability, pricing and viewing options.
+          </p>
+
+          <form onSubmit={handleSubmit} className="bg-white p-8 md:p-12 rounded-lg space-y-6">
+            <div>
+              <input
+                type="text"
+                name="name"
+                placeholder="Name"
+                value={formData.name}
+                onChange={handleInputChange}
+                required
+                className="w-full px-4 py-3 border border-gray-200 rounded-sm text-sm focus:outline-none focus:border-[#0F5E63]"
+              />
+            </div>
+            <div>
+              <input
+                type="email"
+                name="email"
+                placeholder="Email"
+                value={formData.email}
+                onChange={handleInputChange}
+                required
+                className="w-full px-4 py-3 border border-gray-200 rounded-sm text-sm focus:outline-none focus:border-[#0F5E63]"
+              />
+            </div>
+            <div>
+              <input
+                type="tel"
+                name="phone"
+                placeholder="Phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 border border-gray-200 rounded-sm text-sm focus:outline-none focus:border-[#0F5E63]"
+              />
+            </div>
+            <div>
+              <textarea
+                name="message"
+                rows="4"
+                placeholder="Message"
+                value={formData.message}
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 border border-gray-200 rounded-sm text-sm focus:outline-none focus:border-[#0F5E63] resize-none"
+              />
+            </div>
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                name="consent"
+                id="consent"
+                checked={formData.consent}
+                onChange={handleInputChange}
+                required
+                className="mt-1"
+              />
+              <label htmlFor="consent" className="text-sm text-gray-600">
+                I agree to be contacted by Caria Estates about this project.
+              </label>
+            </div>
+            <button
+              type="submit"
+              className="w-full px-8 py-4 bg-[#0F5E63] text-white text-sm tracking-wider uppercase rounded-sm hover:bg-[#0d4f53] transition-all"
+            >
+              Send inquiry
+            </button>
+          </form>
+        </div>
+      </section>
+
+      {/* 10) RELATED PROJECTS */}
+      {relatedProjects.length > 0 && (
+        <section className="py-20 md:py-32 bg-white">
+          <div className="max-w-7xl mx-auto px-6">
+            <h2 className="font-serif text-3xl md:text-4xl text-caria-slate mb-12 text-center">
+              More developments by Caria Estates
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {relatedProjects.map((proj) => (
+                <Link
+                  key={proj.id}
+                  to={`/projects/${proj.slug}`}
+                  className="group"
+                >
+                  <div className="overflow-hidden rounded-lg mb-4">
+                    <img
+                      src={proj.image}
+                      alt={proj.name}
+                      className="w-full h-64 object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                  </div>
+                  <h3 className="font-serif text-xl text-caria-slate group-hover:text-[#0F5E63] transition-colors mb-1">
+                    {proj.name}
+                  </h3>
+                  <p className="text-sm text-gray-500 tracking-wider uppercase">
+                    {proj.location}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      <Footer />
+      <CopyrightBar />
+    </div>
+  );
+};
+
+// ============================================
+// SERVICES PAGE
+// ============================================
+const ServicesPage = () => {
+  const [topHtml, setTopHtml] = useState(null);
+
+  useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        const response = await axios.get(`${API}/cms/content`);
+        const item = response.data.find(i => i.content_key === 'hizmetler_ust_metin');
+        if (item) {
+          setTopHtml(item.value_tr);
+        }
+      } catch (error) {
+        console.error("Error fetching services content:", error);
+      }
+    };
+    fetchContent();
+  }, []);
+
+  const services = [
+    {
+      id: 1,
+      title: "After Sale Services",
+      description: "We believe after-sale service is one of the most important elements when buying property. We support you with every detail after your purchase.",
+      image: "https://images.unsplash.com/photo-1556761175-b413da4baf72?w=800&h=600&fit=crop"
+    },
+    {
+      id: 2,
+      title: "Consulting Services",
+      description: "Whenever you need guidance during your buying process or have questions about real estate, we are always one call away.",
+      image: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=800&h=600&fit=crop"
+    },
+    {
+      id: 3,
+      title: "Home Decoration",
+      description: "We make the entire furniture-buying and setup process smooth and comfortable, following each step on your behalf.",
+      image: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=800&h=600&fit=crop"
+    },
+    {
+      id: 4,
+      title: "Transfer",
+      description: "For airport transfers or any transportation needs, we arrange everything for you safely and efficiently.",
+      image: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800&h=600&fit=crop"
+    },
+    {
+      id: 5,
+      title: "Vacation Planner",
+      description: "After settling into your new home, we help you discover the region and enjoy the best experiences Northern Cyprus has to offer.",
+      image: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&h=600&fit=crop"
+    },
+    {
+      id: 6,
+      title: "Home Insurance",
+      description: "We strongly recommend full home insurance for your new property. We handle the entire process quickly and reliably.",
+      image: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop"
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-white">
+      <div className="h-16 md:h-20" />
+
+      {/* HERO SECTION */}
+      <section className="pt-32 pb-20 md:pt-40 md:pb-28">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl text-caria-slate font-light mb-8">
+            Services
+          </h1>
+          {topHtml ? (
+            <div className="text-lg md:text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto mb-12 cms-content" dangerouslySetInnerHTML={{ __html: topHtml }} />
+          ) : (
+            <p className="text-lg md:text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto mb-12">
+              Premium real estate, investment, lifestyle and after-sales services tailored for international buyers in Northern Cyprus.
+            </p>
+          )}
+          <div className="w-24 h-px bg-gray-200 mx-auto" />
+        </div>
+      </section>
+
+      {/* SERVICES GRID SECTION */}
+      <section className="py-16 md:py-24">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16">
+            {services.map((service, index) => (
+              <div
+                key={service.id}
+                className="group animate-fade-in"
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                {/* Service Image */}
+                <div className="relative h-80 md:h-96 overflow-hidden rounded-lg mb-6">
+                  <img
+                    src={service.image}
+                    alt={service.title}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                </div>
+
+                {/* Service Content */}
+                <div>
+                  <h2 className="font-serif text-2xl md:text-3xl text-caria-slate mb-4">
+                    {service.title}
+                  </h2>
+                  <p className="text-gray-600 leading-relaxed mb-6">
+                    {service.description}
+                  </p>
+                  <Link
+                    to={
+                      service.id === 1 ? "/after-sale-services" :
+                        service.id === 2 ? "/consulting-services" :
+                          service.id === 3 ? "/home-decoration" :
+                            service.id === 4 ? "/transfer-services" :
+                              service.id === 5 ? "/vacation-planner" :
+                                service.id === 6 ? "/home-insurance" :
+                                  "/contact"
+                    }
+                    className="inline-flex items-center gap-2 text-[#1BAFA2] text-sm font-medium tracking-wider uppercase hover:gap-3 transition-all"
+                  >
+                    Learn More
+                    <ChevronRight size={16} />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* BOTTOM CTA SECTION */}
+      <section className="py-20 md:py-32 bg-[#F4FAF9]">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h2 className="font-serif text-3xl md:text-4xl text-caria-slate mb-6">
+            Need More Information?
+          </h2>
+          <p className="text-gray-600 text-lg mb-10">
+            Our dedicated team is here to assist you with any questions about our services.
+          </p>
+          <Link
+            to="/contact"
+            className="inline-block px-10 py-4 bg-[#1BAFA2] text-white text-sm tracking-wider uppercase rounded-md hover:bg-[#189890] transition-all shadow-sm"
+          >
+            Get in Touch
+          </Link>
+        </div>
+      </section>
+
+      <Footer />
+      <CopyrightBar />
+    </div>
+  );
+};
+
+// ============================================
+// ABOUT US PAGE
+// ============================================
+const AboutPage = () => {
+  const [aboutHtml, setAboutHtml] = useState("");
+  const [visionHtml, setVisionHtml] = useState("");
+  const [missionHtml, setMissionHtml] = useState("");
+  const [siteContent, setSiteContent] = useState([]);
+
+  useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        const response = await axios.get(`${API}/cms/content`);
+        setSiteContent(response.data);
+        const about = response.data.find(i => i.content_key === 'hakkimizda_metni');
+        const vision = response.data.find(i => i.content_key === 'vizyonumuz_metni');
+        const mission = response.data.find(i => i.content_key === 'misyonumuz_metni');
+
+        if (about) setAboutHtml(about.value_tr);
+        if (vision) setVisionHtml(vision.value_tr);
+        if (mission) setMissionHtml(mission.value_tr);
+      } catch (error) {
+        console.error("Error fetching about content:", error);
+      }
+    };
+    fetchContent();
+  }, []);
+
+  const getSetting = (key, defaultValue) => {
+    const setting = siteContent?.find(c => c.content_key === key);
+    return setting ? setting.value_tr : defaultValue;
+  };
+
+  return (
+    <div className="min-h-screen bg-white">
+      <div className="h-16 md:h-20" />
+
+      {/* 1) HERO SECTION */}
+      <section className="pt-32 pb-20 md:pt-40 md:pb-28 bg-[#F4FAF9]">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl text-caria-slate font-light mb-8">
+            {getSetting('about_title', 'About Us')}
+          </h1>
+          <p className="text-lg md:text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto">
+            {getSetting('about_subtitle', 'Caria Estates is built on trust, experience and a commitment to delivering exceptional real estate services in Northern Cyprus.')}
+          </p>
+        </div>
+      </section>
+
+      {/* 2) OUR GOAL SECTION - Dynamic Content from CMS */}
+      <section className="py-20 md:py-32">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="text-center space-y-8 cms-content">
+            {aboutHtml ? (
+              <div dangerouslySetInnerHTML={{ __html: aboutHtml }} />
+            ) : (
+              <div className="space-y-8">
+                <p className="text-lg md:text-xl text-gray-600 leading-relaxed">
+                  Simply put, your satisfaction is our goal. When you buy your vacation home with us, we aim to bring happiness to your family by assisting you to make decisions with no regrets.
+                </p>
+                <p className="text-lg md:text-xl text-gray-600 leading-relaxed">
+                  We understand that buying a property abroad is not easy. For this reason, we work on your behalf to make your buying experience smooth from beginning to end. Together with you, we avoid obstacles and prevent unpleasant surprises.
+                </p>
+                <p className="text-lg md:text-xl text-gray-600 leading-relaxed">
+                  With our experience, professionalism, and strong background, we provide exceptional service and long-lasting customer satisfaction.
+                </p>
+              </div>
+            )}
+          </div>
+          <div className="w-24 h-px bg-gray-200 mx-auto mt-16" />
+        </div>
+      </section>
+
+      {/* 3 & 4) OUR TEAM SECTION */}
+      <section className="py-20 md:py-32 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <h2 className="font-serif text-3xl md:text-4xl text-caria-slate mb-12 text-center">
+            Our Team
+          </h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Image */}
+            <div className="relative h-96 lg:h-[500px] rounded-lg overflow-hidden">
+              <img
+                src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&h=1000&fit=crop"
+                alt="Our Team"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            {/* Content */}
+            <div className="space-y-6">
+              <p className="text-lg text-gray-600 leading-relaxed">
+                Our team consists of experienced, enthusiastic and trusted professionals who are always ready to guide you through every step of buying property abroad.
+              </p>
+              <p className="text-lg text-gray-600 leading-relaxed">
+                We ensure you receive the highest level of service with sincerity, care and expertise.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 5) VISION & MISSION SECTION */}
+      {(visionHtml || missionHtml) && (
+        <section className="py-20 md:py-32 bg-[#F4FAF9]">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+              {visionHtml && (
+                <div className="bg-white p-8 md:p-12 rounded-lg shadow-sm">
+                  <h2 className="font-serif text-3xl text-caria-slate mb-6">Vizyonumuz</h2>
+                  <div className="text-gray-600 leading-relaxed cms-content" dangerouslySetInnerHTML={{ __html: visionHtml }} />
+                </div>
+              )}
+              {missionHtml && (
+                <div className="bg-white p-8 md:p-12 rounded-lg shadow-sm">
+                  <h2 className="font-serif text-3xl text-caria-slate mb-6">Misyonumuz</h2>
+                  <div className="text-gray-600 leading-relaxed cms-content" dangerouslySetInnerHTML={{ __html: missionHtml }} />
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 6) OUR GOAL SECTION - Card Version (Previously 5) */}
+      <section className="py-20 md:py-32 bg-white">
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="bg-white rounded-lg overflow-hidden shadow-sm">
+            {/* Image */}
+            <div className="relative h-80 md:h-96 overflow-hidden">
+              <img
+                src="https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=1200&h=600&fit=crop"
+                alt="Our Goal"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            {/* Content */}
+            <div className="p-8 md:p-12 text-center">
+              <h2 className="font-serif text-3xl md:text-4xl text-caria-slate mb-6">
+                Our Goal
+              </h2>
+              <p className="text-lg text-gray-600 leading-relaxed max-w-3xl mx-auto">
+                We always aim to provide the best service with our extensive experience. Our goal is to deliver complete customer satisfaction — offering exclusive apartment and villa options in Northern Cyprus and international regions.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 6) ASSOCIATE PARTNERS SECTION */}
+      <section className="py-20 md:py-32 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <h2 className="font-serif text-3xl md:text-4xl text-caria-slate mb-12 text-center">
+            Associate Partners
+          </h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Content */}
+            <div className="space-y-6 lg:order-2">
+              <p className="text-lg text-gray-600 leading-relaxed">
+                As Caria Estates International, we collaborate with highly experienced partners in Italy and Cyprus to offer more personalized, reliable and professional service to our clients.
+              </p>
+              <p className="text-lg text-gray-600 leading-relaxed">
+                Our global network ensures you receive world-class expertise and local knowledge, no matter where your property journey takes you.
+              </p>
+            </div>
+            {/* Image */}
+            <div className="relative h-96 lg:h-[500px] rounded-lg overflow-hidden lg:order-1">
+              <img
+                src="https://images.unsplash.com/photo-1521791136064-7986c2920216?w=800&h=1000&fit=crop"
+                alt="Associate Partners"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 7) CONTACT CTA SECTION */}
+      <section className="py-20 md:py-32 bg-[#F4FAF9]">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h2 className="font-serif text-3xl md:text-4xl text-caria-slate mb-6">
+            Would you like to learn more?
+          </h2>
+          <p className="text-lg text-gray-600 mb-10 leading-relaxed">
+            Schedule a consultation with our team. We are always here for you.
+          </p>
+          <Link
+            to="/contact"
+            className="inline-block px-10 py-4 bg-[#1BAFA2] text-white text-sm tracking-wider uppercase rounded-md hover:bg-[#189890] transition-all shadow-sm"
+          >
+            Contact Us
+          </Link>
+        </div>
+      </section>
+
+      <Footer />
+      <CopyrightBar />
+    </div>
+  );
+};
+
+// ============================================
+// CONTACT PAGE
+// ============================================
+const ContactPage = () => {
+  const [formData, setFormData] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    region: "",
+    message: ""
+  });
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.post(`${API}/inquiries`, {
+        name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        message: formData.message,
+        status: "new"
+      });
+      alert("Thank you for contacting us! We will get back to you within the same day.");
+      // Reset form
+      setFormData({
+        fullName: "",
+        email: "",
+        phone: "",
+        region: "",
+        message: ""
+      });
+    } catch (err) {
+      console.error("Inquiry error:", err);
+      alert("An error occurred. Please try again later.");
+    }
+  };
+
+  const offices = [
+    {
+      name: "Kyrenia Office",
+      address: "123 Harbor Road, Kyrenia",
+      phone: "+90 533 123 4567",
+      email: "info@cariaestates.com"
+    },
+    {
+      name: "Iskele Office",
+      address: "45 Beach Boulevard, Iskele",
+      phone: "+90 533 987 6543",
+      email: "iskele@cariaestates.com"
+    },
+    {
+      name: "Famagusta Office",
+      address: "76 Old Town Street, Famagusta",
+      phone: "+90 533 825 4589",
+      email: "famagusta@cariaestates.com"
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-white">
+      <div className="h-16 md:h-20" />
+
+      {/* 1) HERO SECTION */}
+      <section className="pt-32 pb-20 md:pt-40 md:pb-28 bg-white">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl text-caria-slate font-light mb-8">
+            Contact Us
+          </h1>
+          <p className="text-lg md:text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto">
+            We are here to assist you with anything you need about buying property or investing in Northern Cyprus.
+          </p>
+        </div>
+      </section>
+
+      {/* 2) TWO-COLUMN LAYOUT */}
+      <section className="py-16 md:py-24">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            {/* LEFT: CONTACT FORM */}
+            <div className="bg-white rounded-lg p-8 md:p-10 shadow-sm border border-gray-100">
+              <h2 className="font-serif text-3xl text-caria-slate mb-8">
+                Get in Touch
+              </h2>
+
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Full Name */}
+                <div className="relative">
+                  <input
+                    type="text"
+                    name="fullName"
+                    value={formData.fullName}
+                    onChange={handleInputChange}
+                    required
+                    className="peer w-full px-4 py-3 border border-gray-200 rounded-md text-gray-700 focus:outline-none focus:border-[#1BAFA2] transition-colors"
+                    placeholder=" "
+                  />
+                  <label className="absolute left-4 -top-2.5 bg-white px-2 text-sm text-gray-600 transition-all peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-focus:-top-2.5 peer-focus:text-sm peer-focus:text-[#1BAFA2]">
+                    Full Name
+                  </label>
+                </div>
+
+                {/* Email */}
+                <div className="relative">
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    required
+                    className="peer w-full px-4 py-3 border border-gray-200 rounded-md text-gray-700 focus:outline-none focus:border-[#1BAFA2] transition-colors"
+                    placeholder=" "
+                  />
+                  <label className="absolute left-4 -top-2.5 bg-white px-2 text-sm text-gray-600 transition-all peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-focus:-top-2.5 peer-focus:text-sm peer-focus:text-[#1BAFA2]">
+                    Email Address
+                  </label>
+                </div>
+
+                {/* Phone */}
+                <div className="relative">
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    className="peer w-full px-4 py-3 border border-gray-200 rounded-md text-gray-700 focus:outline-none focus:border-[#1BAFA2] transition-colors"
+                    placeholder=" "
+                  />
+                  <label className="absolute left-4 -top-2.5 bg-white px-2 text-sm text-gray-600 transition-all peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-focus:-top-2.5 peer-focus:text-sm peer-focus:text-[#1BAFA2]">
+                    Phone Number
+                  </label>
+                </div>
+
+                {/* Preferred Region */}
+                <div className="relative">
+                  <select
+                    name="region"
+                    value={formData.region}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-md text-gray-700 focus:outline-none focus:border-[#1BAFA2] transition-colors appearance-none"
+                  >
+                    <option value="">Select Preferred Region</option>
+                    <option value="kyrenia">Kyrenia</option>
+                    <option value="iskele">Iskele</option>
+                    <option value="famagusta">Famagusta</option>
+                    <option value="lefke">Lefke</option>
+                    <option value="guzelyurt">Guzelyurt</option>
+                  </select>
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                </div>
+
+                {/* Message */}
+                <div className="relative">
+                  <textarea
+                    name="message"
+                    value={formData.message}
+                    onChange={handleInputChange}
+                    rows="5"
+                    required
+                    className="peer w-full px-4 py-3 border border-gray-200 rounded-md text-gray-700 focus:outline-none focus:border-[#1BAFA2] transition-colors resize-none"
+                    placeholder=" "
+                  />
+                  <label className="absolute left-4 -top-2.5 bg-white px-2 text-sm text-gray-600 transition-all peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-focus:-top-2.5 peer-focus:text-sm peer-focus:text-[#1BAFA2]">
+                    Message
+                  </label>
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  className="w-full px-8 py-4 bg-[#1BAFA2] text-white text-sm tracking-wider uppercase rounded-md hover:bg-[#189890] transition-all shadow-sm"
+                >
+                  Send Message
+                </button>
+
+                {/* Note */}
+                <p className="text-sm text-gray-500 text-center">
+                  We will get back to you within the same day.
+                </p>
+              </form>
+            </div>
+
+            {/* RIGHT: OFFICE INFORMATION */}
+            <div className="space-y-8">
+              <h2 className="font-serif text-3xl text-caria-slate mb-8">
+                Our Offices
+              </h2>
+
+              {/* Office Cards */}
+              <div className="space-y-6">
+                {offices.map((office, index) => (
+                  <div
+                    key={index}
+                    className="bg-white rounded-lg p-6 shadow-sm border border-gray-100"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="flex-shrink-0">
+                        <div className="w-10 h-10 bg-[#E6F4F4] rounded-full flex items-center justify-center">
+                          <MapPin className="w-5 h-5 text-[#1BAFA2]" />
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-lg text-caria-slate mb-2">
+                          {office.name}
+                        </h3>
+                        <p className="text-gray-600 text-sm mb-2">{office.address}</p>
+                        <div className="space-y-1">
+                          <a
+                            href={`tel:${office.phone}`}
+                            className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#1BAFA2] transition-colors"
+                          >
+                            <Phone size={14} />
+                            {office.phone}
+                          </a>
+                          <a
+                            href={`mailto:${office.email}`}
+                            className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#1BAFA2] transition-colors"
+                          >
+                            <Mail size={14} />
+                            {office.email}
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* 3) GOOGLE MAP */}
+              <div className="rounded-lg overflow-hidden shadow-sm border border-gray-100">
+                <iframe
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d206253.4359!2d33.1!3d35.3!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzXCsDE4JzAwLjAiTiAzM8KwMDYnMDAuMCJF!5e0!3m2!1sen!2s!4v1234567890"
+                  width="100%"
+                  height="400"
+                  style={{ border: 0 }}
+                  allowFullScreen=""
+                  loading="lazy"
+                  title="Caria Estates Locations"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 5) WHATSAPP CTA */}
+      <section className="py-12 bg-white border-t border-gray-100">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <div className="flex items-center justify-center gap-4">
+            <MessageSquare className="w-6 h-6 text-[#25D366]" />
+            <div className="text-left">
+              <p className="text-sm text-gray-500 mb-1">WhatsApp Support</p>
+              <a
+                href="https://wa.me/905331234567"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-lg font-medium text-[#1BAFA2] hover:text-[#189890] transition-colors"
+              >
+                +90 533 123 4567
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 4) CONTACT CTA SECTION */}
+      <section className="py-20 md:py-32 bg-[#F4FAF9]">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h2 className="font-serif text-3xl md:text-4xl text-caria-slate mb-6">
+            Looking for your dream home in Northern Cyprus?
+          </h2>
+          <p className="text-lg text-gray-600 mb-10">
+            We&apos;re just a message away.
+          </p>
+          <Link
+            to="/properties"
+            className="inline-block px-10 py-4 bg-[#1BAFA2] text-white text-sm tracking-wider uppercase rounded-md hover:bg-[#189890] transition-all shadow-sm"
+          >
+            Start Your Journey
+          </Link>
+        </div>
+      </section>
+
+      <Footer />
+      <CopyrightBar />
+    </div>
+  );
+};
+
+// ============================================
+// AFTER SALE SERVICES PAGE
+// ============================================
+const AfterSaleServicesPage = () => {
+  const listItems = [
+    "Paying electricity bills monthly",
+    "Paying water bills monthly",
+    "Paying annual property tax in Turkey",
+    "Checking out property in Alanya Turkey periodically",
+    "Checking mailbox on weekly bases",
+    "Key holding for emergencies",
+    "Welcome pack shopping (only contents are charged for)",
+    "Collection and delivering laundry (laundry service will be charged)",
+    "Obtaining quotes and overseeing works and/or repairs",
+    "Accepting deliveries to your property in Turkey Northern Cyprus",
+    "Ventilating the property in Turkey Italy Northern Cyprus",
+    "Watering indoor & outdoor plants and flowers",
+    "Additional integrity checks after severe weather",
+    "Checking hot & cold water supplies along with electricity and gas.",
+    "Immediate contact of the apartment owner in Alanya upon discovery of any faults to prevent and minimize further damage and expenses.",
+    "In-house accounting and preparation of monthly & year end statements for clients"
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#FDFCFB] font-sans">
+      <div className="h-16 md:h-20" />
+
+      {/* 1) HERO SECTION - Scandinavian Minimalist */}
+      <section className="relative h-[70vh] flex items-center justify-center overflow-hidden">
+        <div className="absolute inset-0">
+          <img
+            src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=1920&h=1080&fit=crop"
+            alt="Scandinavian Minimalist Interior"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/15" />
+        </div>
+        <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
+          <h1 className="font-serif text-5xl md:text-6xl lg:text-7xl text-white font-light mb-6 drop-shadow-md">
+            After Sale Services
+          </h1>
+          <div className="w-16 h-px bg-white mx-auto mb-8 opacity-60" />
+        </div>
+      </section>
+
+      {/* 2) INTRO CONTENT - Wide whitespace, elegant fonts */}
+      <section className="py-24 md:py-32 bg-white">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="space-y-16 text-center">
+            {/* Split paragraphs as per structured list */}
+            <div className="space-y-12">
+              <p className="text-2xl md:text-3xl font-serif text-caria-slate leading-relaxed font-light">
+                At Caria Estate International we feel that customer service is not just part of our business, service is our business.
+              </p>
+
+              <div className="space-y-8 text-lg text-gray-600 leading-loose font-light text-left">
+                <p>
+                  We practice our business with a personal touch focused on the highest degree of professional services, delivered in a very individualized manner to best serve the needs of the homeowner or investor.
+                </p>
+                <p className="text-gray-400 italic">
+                  More services for apartments in Alanya beach front, apartment in Cikcilli complexes.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-12 items-center py-12 border-y border-gray-50">
+              <div className="flex-1 order-2 md:order-1 text-left">
+                <div className="space-y-6 text-lg text-gray-600 leading-loose font-light">
+                  <p className="font-medium text-caria-turquoise">
+                    We offer prompt, personalized and reliable service at competitive fees.
+                  </p>
+                  <p className="text-xl font-serif text-caria-slate">
+                    Your satisfaction is our first priority!
+                  </p>
+                  <p>
+                    We have a proven track record of customer and client satisfaction.
+                  </p>
+                  <p>
+                    The keys to our success are flexibility, versatility, education, experience and loyalty to our clients.
+                  </p>
+                </div>
+              </div>
+              <div className="flex-1 order-1 md:order-2">
+                <img
+                  src="https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=800&h=800&fit=crop"
+                  alt="Minimalist Home Detail"
+                  className="rounded-lg shadow-sm w-full grayscale-[10%] hover:grayscale-0 transition-all duration-1000"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3) SERVICES LIST - Two columns, whitespace, dividers */}
+      <section className="py-24 md:py-32 bg-[#FAF9F7]">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-20 gap-y-2">
+            {listItems.map((item, index) => (
+              <div key={index} className="group py-6 border-b border-gray-200/60 last:border-b-0 md:last:border-b">
+                <div className="flex items-start gap-4">
+                  <span className="text-caria-turquoise mt-1 font-serif text-lg opacity-40 group-hover:opacity-100 transition-opacity">•</span>
+                  <p className="text-caria-slate font-light leading-relaxed text-[17px] group-hover:translate-x-1 transition-transform duration-300">
+                    {item}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 4) DECORATIVE GALLERY - Scandinavian feel */}
+      <section className="py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="h-96 md:h-[500px] rounded-lg overflow-hidden">
+              <img
+                src="https://images.unsplash.com/photo-1494438639946-1ebd1d20bf85?w=800&h=1000&fit=crop"
+                alt="Minimalist Lighting"
+                className="w-full h-full object-cover grayscale-[20%]"
+              />
+            </div>
+            <div className="h-96 md:h-[500px] rounded-lg overflow-hidden mt-12 md:mt-0 lg:translate-y-12">
+              <img
+                src="https://images.unsplash.com/photo-1594913785162-e678ac0524dc?w=800&h=1000&fit=crop"
+                alt="Scandinavian Interior Detail"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="hidden lg:block h-[500px] rounded-lg overflow-hidden">
+              <img
+                src="https://images.unsplash.com/photo-1505693413171-293669746a57?w=800&h=1000&fit=crop"
+                alt="Modern Minimal Home"
+                className="w-full h-full object-cover grayscale-[10%]"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 5) CLOSING CTA */}
+      <section className="py-24 md:py-32 bg-[#FDFCFB] border-t border-gray-100">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h2 className="font-serif text-3xl md:text-4xl text-caria-slate font-light mb-8">
+            Have questions about our After Sale support?
+          </h2>
+          <Link
+            to="/contact"
+            className="inline-block px-12 py-5 bg-caria-slate text-white text-sm tracking-[0.2em] uppercase hover:bg-black transition-all duration-500 rounded-sm"
+          >
+            Connect with us
+          </Link>
+        </div>
+      </section>
+
+      <Footer />
+      <CopyrightBar />
+    </div>
+  );
+};
+
+// ============================================
+// HOME DECORATION PAGE
+// ============================================
+const HomeDecorationPage = () => {
+  const packages = [
+    {
+      name: "SILVER PACKAGE",
+      price: "£ 4,900",
+      items: [
+        "LIVINGROOM 3 & 2 & 1 SEATER SOFA",
+        "LIVINGROOM COFFE TABLE",
+        "DINING ROOM TABLE FOR 4",
+        "DINING ROOM 4 CHAIRS",
+        "MASTER BEDROOM 3 DOORS WARDROBE",
+        "MASTER BEDROOM 160x200 MATTRESS",
+        "MASTER BEDROOM 160x200 BED FRAME",
+        "MASTER BEDROOM 2 NIGHT STANDS",
+        "2ND BEDROOM 2 DOORS WARDROBE",
+        "2ND BEDROOM 2 - 90x190 MATTRESS",
+        "2ND BEDROOM 2 – 90x190 BED FRAME",
+        "2ND BEDROOM 1 NIGHT STAND"
+      ]
+    },
+    {
+      name: "GOLD PACKAGE",
+      price: "£ 6,900",
+      featured: true,
+      items: [
+        "LIVINGROOM 3 & 2 & 1 SEATER SOFA",
+        "LIVINGROOM COFFE TABLE",
+        "DINING ROOM TABLE FOR 4",
+        "DINING ROOM 4 CHAIRS",
+        "MASTER BEDROOM 4 DOORS WARDROBE",
+        "MASTER BEDROOM 160x200 MATTRESS",
+        "MASTER BEDROOM 160x200 BED FRAME (WITH STORAGE)",
+        "MASTER BEDROOM 160 cm HEADPIECE",
+        "MASTER BEDROOM 2 NIGHT STANDS",
+        "2ND BEDROOM 3 DOORS WARDROBE",
+        "2ND BEDROOM 2 - 90x200 MATTRESS",
+        "2ND BEDROOM 2 – 90x200 BED FRAME",
+        "2ND BEDROOM 90 cm 2 HEADPIECES",
+        "2ND BEDROOM 1 NIGHT STAND"
+      ]
+    },
+    {
+      name: "PLATINUM PACKAGE",
+      price: "£ 9,900",
+      items: [
+        "LIVINGROOM 3 & 2 & 1 SEATER SOFA",
+        "LIVINGROOM COFFE TABLE",
+        "DINING ROOM TABLE FOR 6",
+        "DINING ROOM 6 CHAIRS",
+        "MASTER BEDROOM 4 DOORS WARDROBE",
+        "MASTER BEDROOM 160x200 MATTRESS",
+        "MASTER BEDROOM 160x200 BED FRAME",
+        "MASTER BEDROOM 160 cm HEADPIECE",
+        "MASTER BEDROOM 2 NIGHT STANDS",
+        "2ND BEDROOM 3 DOORS WARDROBE",
+        "2ND BEDROOM 2 - 90x200 MATTRESS",
+        "2ND BEDROOM 2 – 90x200 BED FRAME",
+        "2ND BEDROOM 90 cm 2 HEADPIECES",
+        "2ND BEDROOM 1 NIGHT STAND",
+        "GARDEN FURNITURE BAMBU TABLE FOR 4",
+        "GARDEN FURNITURE 4 BAMBU CHAIRS"
+      ]
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#FDFCFB] font-sans">
+      <div className="h-16 md:h-20" />
+
+      {/* 1) HERO SECTION */}
+      <section className="relative h-[65vh] flex items-center justify-center overflow-hidden">
+        <div className="absolute inset-0">
+          <img
+            src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1920&h=1080&fit=crop"
+            alt="Scandinavian Living Room"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/20" />
+        </div>
+        <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
+          <p className="text-white/80 uppercase tracking-[0.3em] text-sm mb-4">Interior Design</p>
+          <h1 className="font-serif text-5xl md:text-6xl text-white font-light tracking-tight mb-6">
+            Home Decoration
+          </h1>
+          <div className="w-12 h-px bg-white/40 mx-auto" />
+        </div>
+      </section>
+
+      {/* 2) PRICING CARDS - Catalog Style */}
+      <section className="py-24 md:py-32 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
+            {packages.map((pkg, idx) => (
+              <div
+                key={idx}
+                className={`flex flex-col border border-gray-100 p-8 md:p-10 transition-all duration-500 hover:shadow-xl hover:-translate-y-2 ${pkg.featured ? 'bg-[#FAF9F7] shadow-lg scale-105' : 'bg-white'
+                  }`}
+              >
+                <div className="mb-10 text-center">
+                  <h3 className="font-serif text-xl text-caria-slate tracking-widest uppercase mb-4">
+                    {pkg.name}
+                  </h3>
+                  <div className="text-3xl font-light text-caria-turquoise mb-4">
+                    {pkg.price}
+                  </div>
+                  <div className={`w-8 h-px mx-auto ${pkg.featured ? 'bg-caria-turquoise' : 'bg-gray-200'}`} />
+                </div>
+
+                <div className="flex-grow space-y-4">
+                  {pkg.items.map((item, i) => (
+                    <div key={i} className="flex items-start gap-4 py-1 border-b border-gray-50 last:border-0">
+                      <div className="w-1 h-1 rounded-full bg-caria-turquoise/40 mt-2 flex-shrink-0" />
+                      <p className="text-xs lg:text-[13px] text-gray-500 uppercase tracking-wider leading-relaxed">
+                        {item}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-12 text-center">
+                  <Link
+                    to="/contact"
+                    className={`inline-block w-full py-4 text-xs tracking-[0.2em] uppercase transition-all duration-300 ${pkg.featured
+                      ? 'bg-caria-turquoise text-white hover:bg-aria-slate'
+                      : 'border border-gray-200 text-caria-slate hover:bg-caria-slate hover:text-white'
+                      }`}
+                  >
+                    Inquire Details
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 3) GALLERY SECTION */}
+      <section className="py-24 bg-[#FDFCFB]">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-8">
+              <div className="h-96 rounded-sm overflow-hidden">
+                <img
+                  src="https://images.unsplash.com/photo-1594913785162-e678ac0524dc?w=1000&h=800&fit=crop"
+                  alt="Minimalist Bedroom"
+                  className="w-full h-full object-cover grayscale-[10%] hover:grayscale-0 transition-all duration-1000"
+                />
+              </div>
+              <p className="text-gray-400 font-light italic text-center">
+                Refined details for a peaceful atmosphere.
+              </p>
+            </div>
+            <div className="space-y-8 md:mt-16">
+              <div className="h-96 rounded-sm overflow-hidden">
+                <img
+                  src="https://images.unsplash.com/photo-1615876234886-fd9a39faa97f?w=1000&h=800&fit=crop"
+                  alt="Luxury Dining room"
+                  className="w-full h-full object-cover grayscale-[10%] hover:grayscale-0 transition-all duration-1000"
+                />
+              </div>
+              <p className="text-gray-400 font-light italic text-center">
+                Nordic elegance for every corner of your home.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 4) PROFESSIONAL SIGNATURE SECTION */}
+      <section className="py-24 md:py-32 bg-white">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <div className="space-y-8">
+            <div className="w-12 h-px bg-caria-turquoise mx-auto mb-10" />
+            <p className="text-xl md:text-2xl font-serif text-caria-slate leading-relaxed font-light italic">
+              "We as your real estate agent in Tuekey Northern Cyprus Italy are here to give you the services for your apartments villas in Alanya Oba Cikcilli Famagusta Kyrenia Lake Iseo Sarnico Magliolo"
+            </p>
+            <div className="w-12 h-px bg-caria-turquoise mx-auto mt-10" />
+          </div>
+        </div>
+      </section>
+
+      <Footer />
+      <CopyrightBar />
+    </div>
+  );
+};
+
+// ============================================
+// CONSULTING SERVICES PAGE
+// ============================================
+const ConsultingServicesPage = () => {
+  const includeList = [
+    "Real estate market studies in Turkey Norther Cyprus Italy",
+    "Portfolio services",
+    "Legal advisory",
+    "Property valuation in Turkey Northern Cyprus",
+    "Translation service",
+    "Finalizing uncompleted real estate transaction (title deed transfer - move in permission (iskan) - electric/water connection)"
+  ];
+
+  const mattersList = [
+    "if you couldnt get your title deed registration for somehow for your property in alanya avsallar cikcilli",
+    "if you are having difficulties to get your move in permission (iskan)",
+    "if you dont have water and/or electic subscription",
+    "if you are thinking about seeling your property",
+    "if you need any legal advice for any matter related with real estate in Turkey Northern Cyprus Italy"
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#FDFCFB] font-sans">
+      <div className="h-16 md:h-20" />
+
+      {/* 1) HERO SECTION */}
+      <section className="relative h-[70vh] flex items-center justify-center overflow-hidden">
+        <div className="absolute inset-0">
+          <img
+            src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=1920&h=1080&fit=crop"
+            alt="Modern Minimal Office"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/15" />
+        </div>
+        <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
+          <h1 className="font-serif text-5xl md:text-6xl lg:text-7xl text-white font-light mb-6 drop-shadow-md">
+            Consulting Services
+          </h1>
+          <div className="w-16 h-px bg-white mx-auto mb-8 opacity-60" />
+        </div>
+      </section>
+
+      {/* 2) INTRO CONTENT */}
+      <section className="py-24 md:py-32 bg-white">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="space-y-16">
+            <div className="space-y-12">
+              <p className="text-2xl md:text-3xl font-serif text-caria-slate leading-relaxed font-light text-center">
+                Caria Estates International (Certified real estate agent in Turkey Northern Cyprus Italy) with highly educated and experineced background is here to help you out and advice you.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center py-8">
+                <div className="space-y-8 text-lg text-gray-600 leading-loose font-light">
+                  <p>
+                    This service is suited to any client who would prefer a more individual approach and guidance. Our consultancy is tailored made to your requirements no matter how big or small your concern is.
+                  </p>
+                </div>
+                <div>
+                  <img
+                    src="https://images.unsplash.com/photo-1431540015161-0bf868a2d407?w=800&h=600&fit=crop"
+                    alt="Architectural meeting"
+                    className="rounded-lg shadow-sm w-full grayscale-[10%] hover:grayscale-0 transition-all duration-1000"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* FREE OF CHARGE HIGHLIGHT - Distinctive Box */}
+            <div className="relative overflow-hidden bg-[#FAF9F7] p-12 md:p-16 rounded-sm text-center border border-gray-100/50">
+              <div className="absolute top-0 left-0 w-1 h-full bg-caria-turquoise opacity-20" />
+              <p className="text-gray-500 font-light text-sm tracking-[0.2em] uppercase mb-4">Professional Guidance</p>
+              <h3 className="font-serif text-3xl md:text-4xl text-caria-slate mb-6">
+                Our consulting service is <br className="hidden md:block" />
+                <span className="text-caria-turquoise italic font-medium relative inline-block mt-2">
+                  absolutely FREE of CHARGE
+                  <span className="absolute -bottom-2 left-0 w-full h-px bg-caria-turquoise/30" />
+                </span>
+              </h3>
+              <p className="text-gray-600 font-light leading-relaxed max-w-2xl mx-auto mt-8">
+                Please feel free to contact with us for any legal advice related with real estate in Turkey.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3) WHAT INCLUDES */}
+      <section className="py-24 md:py-32 bg-[#FAF9F7]">
+        <div className="max-w-6xl mx-auto px-6">
+          <h2 className="font-serif text-3xl md:text-4xl text-caria-slate mb-16 text-center font-light">
+            What does our consultancy service include;
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-20 gap-y-2">
+            {includeList.map((item, index) => (
+              <div key={index} className="group py-6 border-b border-gray-200/60 last:border-b-0 md:last:border-b">
+                <div className="flex items-start gap-4">
+                  <span className="text-caria-turquoise mt-1 font-serif text-lg opacity-40 group-hover:opacity-100 transition-opacity">•</span>
+                  <p className="text-caria-slate font-light leading-relaxed text-[17px] group-hover:translate-x-1 transition-transform duration-300">
+                    {item}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 4) MATTERS SECTION */}
+      <section className="py-24 md:py-32 bg-white">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="space-y-12">
+            <h2 className="font-serif text-2xl md:text-3xl text-caria-slate leading-relaxed font-light text-center">
+              If you are having one of the matters below please contact us at your convenience. We would be happy to assist you at our earliest for your property in Turkey Northern Cyprus Italy;
+            </h2>
+
+            <div className="space-y-8">
+              {mattersList.map((item, index) => (
+                <div key={index} className="flex items-start gap-6 p-6 rounded-sm bg-[#FAF9F7] hover:bg-white border border-transparent hover:border-gray-100 transition-all duration-300 group">
+                  <div className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-caria-turquoise mt-3 flex-shrink-0 transition-colors" />
+                  <p className="text-gray-600 font-light leading-relaxed text-lg">
+                    {item}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 5) CLOSING NOTE */}
+      <section className="py-24 bg-[#FAF9F7]/50 border-t border-gray-50">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <div className="space-y-10">
+            <p className="text-xl font-serif text-caria-slate leading-loose text-balance italic font-light">
+              For your Consulting Services for apartment in Cikcilli Oba Kestel Mahmutlar Avsallar We as your real estate agent in Alanya will be here to serve the best
+            </p>
+            <div className="w-16 h-px bg-caria-turquoise/40 mx-auto" />
+            <Link
+              to="/contact"
+              className="inline-block px-12 py-5 bg-caria-slate text-white text-sm tracking-[0.2em] uppercase hover:bg-black transition-all duration-500 rounded-sm"
+            >
+              Get Professional Advice
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <Footer />
+      <CopyrightBar />
+    </div>
+  );
+};
+
+const TransferPage = () => {
+  const transferRates = [
+    {
+      country: "TURKEY",
+      rates: [
+        { label: "Antalya Airport - Alanya", price: "£ 60" },
+        { label: "Alanya GZP Airport - Alanya", price: "£ 30" },
+        { label: "Alanya - Antalya Airport", price: "£ 60" }
+      ]
+    },
+    {
+      country: "CYPRUS",
+      rates: [
+        { label: "Ercan Airport - Kyrenia or Esentepe", price: "£ 50" },
+        { label: "Ercan Airport - Long Beach or İskele", price: "£ 60" }
+      ]
+    },
+    {
+      country: "ITALY",
+      rates: [
+        { label: "Bergamo Airport - Lake Iseo", price: "£ 130" },
+        { label: "Milano MXP Airport - Lake Iseo", price: "£ 210" }
+      ]
+    }
+  ];
+
+  const rentalRates = [
+    { country: "Turkey", price: "£ 30", detail: "per day for economy car" },
+    { country: "Cyprus", price: "£ 35", detail: "per day for economy car" },
+    { country: "Italy", price: "£ 70", detail: "per day for economy car" }
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#FDFCFB] font-sans">
+      <div className="h-16 md:h-20" />
+
+      {/* 1) HERO SECTION */}
+      <section className="relative h-[65vh] flex items-center justify-center overflow-hidden">
+        <div className="absolute inset-0">
+          <img
+            src="https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=1920&h=1080&fit=crop"
+            alt="Luxury Airport Transfer"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/25" />
+        </div>
+        <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
+          <p className="text-white/80 uppercase tracking-[0.3em] text-sm mb-4">Quality Transportation</p>
+          <h1 className="font-serif text-5xl md:text-6xl text-white font-light tracking-tight mb-6">
+            Transfer Services
+          </h1>
+          <div className="w-12 h-px bg-white/40 mx-auto" />
+        </div>
+      </section>
+
+      {/* 2) INTRO TEXT */}
+      <section className="py-24 bg-white border-b border-gray-50">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <p className="text-xl md:text-2xl font-serif text-caria-slate leading-relaxed font-light mb-12">
+            Whenever you need transportation during your visit to your holiday house in Alanya Northern Cyprus we are ready to arrange your personal needs at anytime.
+          </p>
+          <div className="space-y-6 text-lg text-gray-600 leading-loose font-light max-w-3xl mx-auto">
+            <p>
+              All you need to do is to give us a call or send us an email with your flight details. We will make sure the our associate company will meet you at the airport or at your holiday house for safe transportation.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 3) TRANSFER RATES */}
+      <section className="py-24 md:py-32 bg-[#FAF9F7]">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="font-serif text-3xl text-caria-slate mb-4">Private transfers rates</h2>
+            <div className="w-12 h-px bg-caria-turquoise mx-auto" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+            {transferRates.map((group, idx) => (
+              <div key={idx} className="bg-white p-10 border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-500">
+                <h3 className="font-serif text-xl text-caria-turquoise tracking-widest mb-8 border-b border-gray-50 pb-4">
+                  {group.country}
+                </h3>
+                <div className="space-y-8">
+                  {group.rates.map((rate, i) => (
+                    <div key={i} className="flex flex-col gap-2">
+                      <span className="text-xs text-gray-400 uppercase tracking-widest font-medium">Route</span>
+                      <p className="text-caria-slate font-light leading-snug">{rate.label}</p>
+                      <span className="text-caria-turquoise font-medium text-lg">{rate.price}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 4) CAR RENTAL */}
+      <section className="py-24 md:py-32 bg-white">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row gap-16 items-center">
+            <div className="flex-1 space-y-8 text-center md:text-left">
+              <h2 className="font-serif text-3xl text-caria-slate leading-tight">
+                If you need to rent a car we will assist you with the best rate in town.
+              </h2>
+              <p className="text-gray-500 font-light italic">
+                Pleasee see the approximete car rental rates below;
+              </p>
+              <div className="space-y-6">
+                {rentalRates.map((rate, idx) => (
+                  <div key={idx} className="flex justify-between items-center py-4 border-b border-gray-50 group hover:translate-x-1 transition-transform">
+                    <span className="text-caria-slate tracking-widest uppercase text-sm">{rate.country}</span>
+                    <div className="text-right">
+                      <span className="text-caria-turquoise font-medium block">{rate.price}</span>
+                      <span className="text-[11px] text-gray-400 uppercase tracking-tighter">{rate.detail}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[13px] text-gray-400 leading-relaxed pt-4">
+                Above car rental rates can be vary according to season and availability.
+              </p>
+            </div>
+            <div className="flex-1">
+              <div className="relative">
+                <img
+                  src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=1000&fit=crop"
+                  alt="Premium Car Detail"
+                  className="rounded-sm shadow-2xl grayscale-[20%] hover:grayscale-0 transition-all duration-1000"
+                />
+                <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-caria-turquoise opacity-5 -z-10" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 5) CLOSING & LOCATIONS */}
+      <section className="py-24 bg-[#FAF9F7]/50">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <div className="space-y-12">
+            <p className="text-xl md:text-2xl font-serif text-caria-slate leading-relaxed font-light italic px-4">
+              "Please call us for your transfer in Alanya, transfer in Northern Cyprus, Kyrenia transfer, Long Beach Cyprus transfer."
+            </p>
+            <div className="w-16 h-px bg-caria-turquoise/40 mx-auto" />
+            <Link
+              to="/contact"
+              className="inline-block px-12 py-5 bg-caria-slate text-white text-sm tracking-[0.2em] uppercase hover:bg-black transition-all duration-500 rounded-sm"
+            >
+              Order Transfer
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <Footer />
+      <CopyrightBar />
+    </div>
+  );
+};
+
+const VacationPlannerPage = () => {
+  const destinations = [
+    {
+      country: "TURKEY",
+      spots: ["Cappadocia", "Black Sea Region", "Pamukkale / Ephesus", "Göcek / Fethiye"]
+    },
+    {
+      country: "CYPRUS",
+      spots: ["Karpaz", "Lefke / Güzelyurt", "Larnaka", "Aiya Napa"]
+    },
+    {
+      country: "ITALY",
+      spots: ["Florence / Tuscany", "Dolomitis / Moena", "Ligurian Sea / Portofino", "Napoli / Amalfi"]
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#FDFCFB] font-sans">
+      <div className="h-16 md:h-20" />
+
+      {/* 1) HERO SECTION */}
+      <section className="relative h-[70vh] flex items-center justify-center overflow-hidden">
+        <div className="absolute inset-0">
+          <img
+            src="https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?w=1920&h=1080&fit=crop"
+            alt="Scenic Mediterranean Coast"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/15" />
+        </div>
+        <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
+          <p className="text-white/80 uppercase tracking-[0.4em] text-sm mb-4">Life is a Journey</p>
+          <h1 className="font-serif text-5xl md:text-6xl text-white font-light tracking-tight mb-8">
+            Vacation Planner
+          </h1>
+          <div className="w-16 h-px bg-white/40 mx-auto" />
+        </div>
+      </section>
+
+      {/* 2) INTRO SECTION - Magazine Style */}
+      <section className="py-24 md:py-32 bg-white">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="space-y-16">
+            <div className="space-y-8">
+              <p className="text-gray-400 uppercase tracking-widest text-xs font-medium">The New Chapter</p>
+              <p className="text-2xl md:text-3xl font-serif text-caria-slate leading-relaxed font-light">
+                We as Caria Estates International (Licensed real estate agent in Alanya Northern Cyprus Italy) believe that once you buy your holiday house and settle down then your new life begins.
+              </p>
+              <p className="text-lg text-gray-500 leading-loose font-light italic">
+                You get used to routine life in the area you will be living in.
+              </p>
+            </div>
+
+            {/* WHAT'S NEXT 1 */}
+            <div className="py-12 border-y border-gray-50 text-center">
+              <h2 className="font-serif text-3xl md:text-4xl text-caria-turquoise font-light italic opacity-80">
+                And after a while, what's next? ...
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+              <div className="space-y-6 text-lg text-gray-600 leading-loose font-light">
+                <p>
+                  Now it is time to discover the surroundings and other parts of Turkey.
+                </p>
+                <p>
+                  Because when you buy an apartment in Turkey, Cyprus or in Italy you are not just buying walls and place to swim and sunbath, this is your new life for the rest of your life.
+                </p>
+                <p className="text-caria-slate font-medium">
+                  So you should enjoy enjoy every day of your life in your new holiday home and live a quality life you deserve.
+                </p>
+              </div>
+              <div className="h-[400px] overflow-hidden rounded-sm">
+                <img
+                  src="https://images.unsplash.com/photo-1516483638261-f4dbaf036963?w=800&h=1000&fit=crop"
+                  alt="Minimalist Travel"
+                  className="w-full h-full object-cover grayscale-[10%] hover:grayscale-0 transition-all duration-1000"
+                />
+              </div>
+            </div>
+
+            {/* WHAT'S NEXT 2 */}
+            <div className="py-12 border-y border-gray-50 text-center">
+              <h2 className="font-serif text-2xl md:text-3xl text-caria-slate font-light tracking-wide uppercase">
+                What are we going to do as your real estate agent in Turkey Kyrenia Lake Iseo? ...
+              </h2>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3) ACTIVITIES GALLERY */}
+      <section className="py-24 bg-[#FAF9F7]">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row gap-20 items-center">
+            <div className="flex-1 order-2 md:order-1">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="h-48 md:h-64 bg-gray-100 rounded-sm">
+                  <img src="https://images.unsplash.com/photo-1551632811-561732d1e306?w=400&h=400&fit=crop" alt="Hiking" className="w-full h-full object-cover grayscale" />
+                </div>
+                <div className="h-48 md:h-64 bg-gray-100 rounded-sm mt-8">
+                  <img src="https://images.unsplash.com/photo-1498654896293-37aacf113fd9?w=400&h=400&fit=crop" alt="Dining" className="w-full h-full object-cover grayscale" />
+                </div>
+              </div>
+            </div>
+            <div className="flex-1 order-1 md:order-2 space-y-8">
+              <p className="text-xl text-gray-700 leading-relaxed font-light">
+                We will arrange speacial acitivities such as trekking, hiking, fishing, fine dining and visiting close historical sites.
+              </p>
+              <div className="w-12 h-px bg-caria-turquoise" />
+              <h3 className="font-serif text-3xl text-caria-slate italic">
+                After all those activities, what is going to be our next step? ...
+              </h3>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 4) DESTINATIONS - Life Begins */}
+      <section className="py-24 md:py-32 bg-white">
+        <div className="max-w-4xl mx-auto px-6 text-center mb-24">
+          <p className="text-2xl font-serif text-caria-slate leading-relaxed font-light">
+            Now your new Turkish, Cypriot & Italian life will begin. We will discover other parts of these countries.
+          </p>
+          <p className="mt-8 text-gray-500 font-light max-w-2xl mx-auto">
+            We as your real estate agent in Alanya Northern Cyprus Italy will arrange trips to famous destinations of the country you bought your holiday house.
+          </p>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16">
+            {destinations.map((dest, idx) => (
+              <div key={idx} className="space-y-8">
+                <div className="border-b border-gray-100 pb-4">
+                  <h3 className="font-serif text-xl text-caria-turquoise tracking-[0.2em]">{dest.country}</h3>
+                </div>
+                <div className="space-y-6">
+                  {dest.spots.map((spot, i) => (
+                    <div key={i} className="group overflow-hidden">
+                      <p className="text-sm text-gray-400 uppercase tracking-widest font-light group-hover:text-caria-slate group-hover:translate-x-2 transition-all duration-300 cursor-default">
+                        {spot}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 5) COUNTRY INFO LINK SECTION */}
+      <section className="py-24 bg-[#FDFCFB] border-t border-gray-100">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <p className="text-lg text-gray-500 font-light mb-12 italic">
+            Please visit our country info pages for properties and apartment and villas in Northern Cyprus Turkey Italy
+          </p>
+          <Link
+            to="/contact"
+            className="inline-block px-12 py-5 bg-caria-slate text-white text-sm tracking-[0.2em] uppercase hover:bg-black transition-all duration-500 rounded-sm"
+          >
+            Plan My Journey
+          </Link>
+        </div>
+      </section>
+
+      <Footer />
+      <CopyrightBar />
+    </div>
+  );
+};
+
+const HomeInsurancePage = () => {
+  const insurancePricing = [
+    { country: "Turkey", price: "£ 150", detail: "(-/+) per year" },
+    { country: "Cyprus", price: "£ 200", detail: "(-/+) per year" },
+    { country: "Italy", price: "£ 350", detail: "(-/+) per year" }
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#FDFCFB] font-sans">
+      <div className="h-16 md:h-20" />
+
+      {/* 1) HERO SECTION */}
+      <section className="relative h-[65vh] flex items-center justify-center overflow-hidden">
+        <div className="absolute inset-0">
+          <img
+            src="https://images.unsplash.com/photo-1449156001437-3320bed3a388?w=1920&h=1080&fit=crop"
+            alt="Secure and Peaceful Home"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/20" />
+        </div>
+        <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
+          <p className="text-white/80 uppercase tracking-[0.4em] text-xs mb-4">Peace of Mind</p>
+          <h1 className="font-serif text-5xl md:text-6xl text-white font-light tracking-tight mb-8">
+            Home Insurance
+          </h1>
+          <div className="w-16 h-px bg-white/40 mx-auto" />
+        </div>
+      </section>
+
+      {/* 2) INTRO TEXT */}
+      <section className="py-24 md:py-32 bg-white">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="space-y-12 text-center md:text-left">
+            <div className="space-y-6">
+              <p className="text-2xl md:text-3xl font-serif text-caria-slate leading-relaxed font-light">
+                You have purchased your holiday house and settle down with your furinutre and equipments. So whats next?
+              </p>
+              <div className="w-12 h-px bg-caria-turquoise mx-auto md:mx-0" />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-start py-8">
+              <div className="space-y-8 text-lg text-gray-600 leading-loose font-light">
+                <p>
+                  First thing you should do with your property is to have an insurance. We strongly suggest every clients of us to have full cover insurance for just in case situations for any property in Alanya Mahmutlar Kyrenia Famagusta Lake Iseo and Sarnico.
+                </p>
+                <p className="text-caria-turquoise font-serif text-2xl italic leading-relaxed">
+                  "Because you never know what life will bring to you."
+                </p>
+              </div>
+              <div className="space-y-8 text-lg text-gray-600 leading-loose font-light">
+                <p>
+                  To prevent any surprises we should take our procoutions and have our insurance done.
+                </p>
+                <div className="p-8 bg-[#FAF9F7] border-l-2 border-caria-turquoise">
+                  <p className="font-serif text-xl text-caria-slate mb-2">Efficiency & Speed</p>
+                  <p className="text-caria-slate/70">
+                    Of course your real estate agent in Alanya, Kyrenia and Italy, We will be assisting you to have your insurance <span className="text-caria-turquoise font-medium">just in an hour</span>.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3) PRICING BLOCKS */}
+      <section className="py-24 bg-[#FAF9F7]">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16 space-y-4">
+            <h2 className="font-serif text-3xl text-caria-slate font-light">Annual Full Cover Insurance</h2>
+            <p className="text-gray-400 text-sm tracking-widest uppercase">Based on 2 bedroom apartment estimates</p>
+            <div className="w-12 h-px bg-gray-200 mx-auto" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {insurancePricing.map((item, idx) => (
+              <div key={idx} className="bg-white p-12 text-center border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-500 group">
+                <h3 className="font-serif text-xl text-gray-400 uppercase tracking-[0.2em] mb-8 group-hover:text-caria-turquoise transition-colors">
+                  {item.country}
+                </h3>
+                <div className="space-y-2">
+                  <span className="text-5xl font-serif text-caria-slate font-light block">
+                    {item.price}
+                  </span>
+                  <span className="text-xs text-gray-400 uppercase tracking-tighter">
+                    {item.detail}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-16 text-center">
+            <p className="text-gray-500 font-light italic text-sm">
+              We will get quotes from different compaines for best price and decide which one to get.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 4) PEACEFUL GALLARY */}
+      <section className="py-24 bg-white">
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="flex gap-8">
+            <div className="flex-1 h-80 rounded-sm overflow-hidden">
+              <img src="https://images.unsplash.com/photo-1512918766674-ed62b90daa95?w=800&h=800&fit=crop" alt="Peaceful Interior" className="w-full h-full object-cover grayscale-[20%]" />
+            </div>
+            <div className="flex-1 h-80 rounded-sm overflow-hidden translate-y-12">
+              <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&h=800&fit=crop" alt="Architectural Detail" className="w-full h-full object-cover grayscale-[10%]" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 5) CLOSING CTA */}
+      <section className="py-24 md:py-32 bg-[#FDFCFB] border-t border-gray-100">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h2 className="font-serif text-3xl text-caria-slate font-light mb-8">
+            Protect your investment today.
+          </h2>
+          <Link
+            to="/contact"
+            className="inline-block px-12 py-5 bg-caria-slate text-white text-sm tracking-[0.2em] uppercase hover:bg-black transition-all duration-500 rounded-sm"
+          >
+            Get a Quote
+          </Link>
+          <p className="mt-12 text-gray-400 text-xs tracking-widest uppercase">
+            Your licensed real estate agent in Alanya, Kyrenia, Lake Iseo
+          </p>
+        </div>
+      </section>
+
+      <Footer />
+      <CopyrightBar />
+    </div>
+  );
+};
+
+// ============================================
+// SECTION: ADVISOR PROFILE (STRAND STYLE)
+// ============================================
+const AdvisorProfile = () => {
+  const { slug } = useParams();
+  const [advisor, setAdvisor] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [activeRegion, setActiveRegion] = useState("DISCOVER ALL");
+
+  useEffect(() => {
+    const fetchAdvisor = async () => {
+      try {
+        const res = await axios.get(`${API}/advisors/${slug}`);
+        setAdvisor(res.data);
+      } catch (err) {
+        console.error("Advisor not found:", slug);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAdvisor();
+  }, [slug]);
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center font-light tracking-widest text-gray-400">LOADING...</div>;
+  if (!advisor) return <div className="min-h-screen flex items-center justify-center font-light tracking-widest text-gray-400">ADVISOR NOT FOUND</div>;
+
+  // Filter listings by active region
+  const listings = advisor.listings || [];
+  const filteredListings = activeRegion === "DISCOVER ALL"
+    ? listings
+    : listings.filter(prop => prop.region?.toUpperCase() === activeRegion.toUpperCase());
+
+  // Get unique regions from listings for filtering
+  const filterRegions = ["DISCOVER ALL", ...new Set(listings.map(p => p.region?.toUpperCase()).filter(Boolean))];
+
+  return (
+    <div className="min-h-screen bg-white">
+      {/* Profile Header / Navigation Space */}
+      <div className="h-20 lg:h-32 bg-caria-slate"></div>
+
+      <section className="pt-20 pb-16 md:pt-32 md:pb-24">
+        <div className="max-w-[1400px] mx-auto px-8 lg:px-12">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-24 items-start">
+
+            {/* Left: Large Portrait (Sticky) */}
+            <div className="lg:col-span-12 xl:col-span-4 lg:sticky lg:top-32">
+              <div className="aspect-[3/4] overflow-hidden rounded-sm shadow-2xl bg-gray-100 group relative">
+                <img
+                  src={advisor.image_url || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&h=1000&fit=crop"}
+                  alt={advisor.name}
+                  className="w-full h-full object-cover grayscale-[20%] group-hover:grayscale-0 transition-all duration-700"
+                />
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-6 lg:hidden">
+                  <h1 className="text-white text-3xl font-serif">{advisor.name}</h1>
+                  <p className="text-white/80 text-xs tracking-widest uppercase mt-1">{advisor.title}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Info & Bio & Scoped Listings */}
+            <div className="lg:col-span-12 xl:col-span-8">
+              <div className="max-w-3xl">
+                <h1 className="hidden lg:block text-5xl xl:text-7xl font-serif text-caria-slate mb-4 leading-tight">
+                  {advisor.name}
+                </h1>
+                <p className="hidden lg:block text-sm tracking-[0.4em] uppercase text-caria-turquoise font-medium mb-12">
+                  {advisor.title}
+                </p>
+
+                {/* Bio Section */}
+                <div className="prose prose-lg max-w-none text-gray-500 font-light leading-relaxed mb-16">
+                  {advisor.bio_html ? (
+                    <div dangerouslySetInnerHTML={{ __html: advisor.bio_html }} />
+                  ) : (
+                    <p>Experienced real estate advisor specializing in luxury properties across Northern Cyprus. Committed to providing exceptional service and finding the perfect home for every client.</p>
+                  )}
+                </div>
+
+                {/* Contact Info (Minimal) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-12 border-y border-gray-100 mb-20">
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[10px] tracking-[0.3em] uppercase text-gray-400">Direct Inquiries</span>
+                    <a href={`mailto:${advisor.email}`} className="text-lg font-light hover:text-caria-turquoise transition-colors">{advisor.email}</a>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[10px] tracking-[0.3em] uppercase text-gray-400">Mobile</span>
+                    <a href={`tel:${advisor.phone}`} className="text-lg font-light hover:text-caria-turquoise transition-colors">{advisor.phone}</a>
+                  </div>
+                </div>
+
+                {/* Scoped Listing Filter */}
+                <div className="listing-section">
+                  <h4 className="text-[10px] tracking-[0.4em] uppercase text-gray-400 mb-8 font-semibold">Active Listings</h4>
+
+                  <div className="flex flex-wrap gap-8 mb-12 border-b border-gray-100 overflow-x-auto whitespace-nowrap scrollbar-hide">
+                    {filterRegions.map(region => (
+                      <button
+                        key={region}
+                        onClick={() => setActiveRegion(region)}
+                        className={`pb-4 text-[11px] tracking-[0.2em] uppercase transition-all relative ${activeRegion === region
+                          ? 'text-caria-slate font-bold'
+                          : 'text-gray-400 hover:text-gray-600'
+                          }`}
+                      >
+                        {region}
+                        {activeRegion === region && (
+                          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-caria-turquoise"></div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Dynamic Scoped Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    {filteredListings.map(property => (
+                      <PropertyCard key={property.id} property={property} />
+                    ))}
+                  </div>
+
+                  {filteredListings.length === 0 && (
+                    <div className="py-32 text-center border border-dashed border-gray-200 rounded-lg">
+                      <p className="text-gray-300 font-light italic tracking-widest text-sm">NO ACTIVE LISTINGS IN THIS REGION</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <Footer />
+      <CopyrightBar />
+    </div>
+  );
+};
+
+// ============================================
+// PROPERTY MANAGEMENT PAGE
+// ============================================
+const PropertyManagementPage = () => {
+  return (
+    <div className="min-h-screen bg-white">
+      <div className="h-16 md:h-20" />
+      <section className="pt-32 pb-20 md:pt-40 md:pb-28 bg-[#F4FAF9]">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl text-caria-slate font-light mb-8">
+            Property Management
+          </h1>
+          <p className="text-lg md:text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto">
+            Professional property management services to ensure your investment is well-maintained and protected.
+          </p>
+        </div>
+      </section>
+      <section className="py-20 md:py-32">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <p className="text-lg text-gray-600 mb-10">
+            Our comprehensive management services include maintenance, rentals, and regular inspections.
+            Contact us for a tailored management plan for your property.
+          </p>
+          <Link
+            to="/contact"
+            className="inline-block px-10 py-4 bg-[#1BAFA2] text-white text-sm tracking-wider uppercase rounded-md hover:bg-[#189890] transition-all shadow-sm"
+          >
+            Inquire Now
+          </Link>
+        </div>
+      </section>
+      <Footer />
+      <CopyrightBar />
+    </div>
+  );
+};
+
+// ============================================
+// ONLINE VIEWING TOUR PAGE
+// ============================================
+const OnlineViewingTourPage = () => {
+  return (
+    <div className="min-h-screen bg-white">
+      <div className="h-16 md:h-20" />
+      <section className="pt-32 pb-20 md:pt-40 md:pb-28 bg-[#CCEBEA]">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl text-caria-slate font-light mb-8">
+            Online Viewing Tour
+          </h1>
+          <p className="text-lg md:text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto">
+            Experience your future home from anywhere in the world with our personalized online viewing tours.
+          </p>
+        </div>
+      </section>
+      <section className="py-20 md:py-32">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <p className="text-lg text-gray-600 mb-10">
+            We offer live video tours via WhatsApp, Zoom, or FaceTime, allowing you to explore every detail of the property in real-time.
+          </p>
+          <Link
+            to="/contact"
+            className="inline-block px-10 py-4 bg-[#1BAFA2] text-white text-sm tracking-wider uppercase rounded-md hover:bg-[#189890] transition-all shadow-sm"
+          >
+            Book a Tour
+          </Link>
+        </div>
+      </section>
+      <Footer />
+      <CopyrightBar />
+    </div>
+  );
+};
+
+// ============================================
+// SERVICES SECTION (Homepage Block)
+// ============================================
+const ServicesSection = ({ blocks }) => {
+  const defaultServices = [
+    { title: "Property Search", desc: "Find your ideal home with our expert guidance.", icon: <Search size={24} /> },
+    { title: "Legal Advice", desc: "Professional legal support for property transactions.", icon: <Check size={24} /> },
+    { title: "Investment", desc: "Strategic advice for maximum ROI in Northern Cyprus.", icon: <Building2 size={24} /> }
+  ];
+
+  return (
+    <section className="py-20 md:py-32 bg-white">
+      <div className="max-w-7xl mx-auto px-6">
+        <h2 className="font-serif text-3xl md:text-4xl text-caria-slate text-center mb-16">Our Services</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+          {defaultServices.map((service, idx) => (
+            <div key={idx} className="p-8 border border-gray-100 rounded-lg hover:shadow-lg transition-all">
+              <div className="text-[#1BAFA2] mb-6">{service.icon}</div>
+              <h3 className="font-serif text-2xl text-caria-slate mb-4">{service.title}</h3>
+              <p className="text-gray-600">{service.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// ============================================
+// MAIN APP COMPONENT
+// ============================================
+function App() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  return (
+    <div className={`App ${isMenuOpen ? 'menu-active' : ''}`}>
+      <BrowserRouter>
+        <Navbar isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
+        <div className="mega-menu-blur">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/properties" element={<PropertiesPage />} />
+            <Route path="/properties/:slug" element={<PropertyDetailPage />} />
+            <Route path="/projects" element={<ProjectsOverviewPage />} />
+            <Route path="/projects/:slug" element={<ProjectDetailPage />} />
+            {/* <Route path="/blog" element={<BlogPage />} /> */} {/* Assuming BlogPage is not defined or handled by DynamicPage */}
+            {/* <Route path="/sell" element={<SellPropertyPage />} /> */} {/* Assuming SellPropertyPage is not defined or handled by DynamicPage */}
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/advisor/:slug" element={<AdvisorProfile />} />
+            <Route path="/services" element={<ServicesPage />} />
+            <Route path="/after-sale-services" element={<AfterSaleServicesPage />} />
+            <Route path="/consulting-services" element={<ConsultingServicesPage />} />
+            <Route path="/property-management" element={<PropertyManagementPage />} />
+            <Route path="/online-viewing-tour" element={<OnlineViewingTourPage />} />
+            <Route path="/transfer-services" element={<TransferPage />} />
+            <Route path="/vacation-planner" element={<VacationPlannerPage />} />
+            <Route path="/home-insurance" element={<HomeInsurancePage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/about-us" element={<AboutPage />} />
+            <Route path="/buy" element={<BuyPage />} />
+            <Route path="/sell" element={<Home />} /> {/* Keeping original sell route for now */}
+            <Route path="/:slug" element={<DynamicPage />} />
+          </Routes>
+        </div>
+      </BrowserRouter>
+    </div>
+  );
+}
+
+const DynamicPage = () => {
+  const { slug } = useParams();
+  const [page, setPage] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPage = async () => {
+      try {
+        const res = await axios.get(`${API}/cms/pages/${slug}`);
+        setPage(res.data);
+      } catch (err) {
+        console.error("Page not found:", slug);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPage();
+  }, [slug]);
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+
+  // Fallback for special slugs or missing pages
+  if (!page) {
+    if (slug === 'home' || !slug) return <Home />;
+    return <Home />;
+  }
+
+  return (
+    <div className="min-h-screen bg-white">
+      <div className="h-16 md:h-20" />
+
+      {/* Dynamic Banner Section */}
+      {page.banner_url && (
+        <section className="relative h-[45vh] lg:h-[55vh] flex items-center justify-center overflow-hidden">
+          <div className="absolute inset-0">
+            {page.banner_url.endsWith('.mp4') ? (
+              <video autoPlay loop muted playsInline className="w-full h-full object-cover">
+                <source src={page.banner_url} type="video/mp4" />
+              </video>
+            ) : (
+              <img src={page.banner_url} alt={page.title} className="w-full h-full object-cover" />
+            )}
+            <div className="absolute inset-0 bg-black/40" />
+          </div>
+          <div className="relative z-10 text-center px-6">
+            <h1 className="font-serif text-4xl md:text-6xl text-white font-light tracking-tight mb-4 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+              {page.banner_title || page.title}
+            </h1>
+            <div className="w-20 h-1 bg-caria-turquoise mx-auto" />
+          </div>
+        </section>
+      )}
+
+      {/* Main Content Area */}
+      <section className="py-16 md:py-24 bg-caria-beige/10">
+        <div className="max-w-5xl mx-auto px-6">
+          {!page.banner_url && (
+            <div className="mb-12">
+              <h1 className="font-serif text-4xl md:text-5xl text-caria-slate font-light mb-6">
+                {page.title}
+              </h1>
+              <div className="w-16 h-1 bg-caria-turquoise" />
+            </div>
+          )}
+          <div
+            className="prose prose-lg max-w-none text-gray-700 leading-relaxed cms-content"
+            dangerouslySetInnerHTML={{
+              __html: page.content_html ? page.content_html
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&quot;/g, '"')
+                .replace(/&#39;/g, "'")
+                .replace(/&amp;/g, '&') : ""
+            }}
+          />
+        </div>
+      </section>
+
+      <Footer />
+      <CopyrightBar />
+    </div>
+  );
+};
+
+export default App;
