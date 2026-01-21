@@ -3,7 +3,9 @@ import { Link, useLocation } from "react-router-dom";
 import {
     X, Menu, ChevronDown, MapPin, Building2,
     Home as HomeIcon, Waves, Mountain, Palmtree,
-    Construction, Landmark, Gem, Trees, Globe
+    Construction, Landmark, Gem, Trees, Globe,
+    Handshake, ShieldCheck, Palette, Car, Layout, UserCheck, Sun, FileCheck,
+    Users, Mail
 } from "lucide-react";
 
 const Navbar = ({ isMenuOpen, setIsMenuOpen }) => {
@@ -35,10 +37,12 @@ const Navbar = ({ isMenuOpen, setIsMenuOpen }) => {
     ]);
 
     const [countries, setCountries] = useState([
-        { name: "Turkey", slug: "turkey" },
-        { name: "Cyprus", slug: "cyprus" },
-        { name: "Italy", slug: "italy" },
-        { name: "Spain", slug: "spain" },
+        { name: "NORTHERN CYPRUS", slug: "northern-cyprus" },
+        { name: "TURKEY", slug: "turkey" },
+        { name: "ITALY", slug: "italy" },
+        { name: "SPAIN", slug: "spain" },
+        { name: "ENGLAND", slug: "england" },
+        { name: "AMERICA", slug: "america" },
     ]);
 
     const [siteContent, setSiteContent] = useState([]);
@@ -55,9 +59,9 @@ const Navbar = ({ isMenuOpen, setIsMenuOpen }) => {
 
                 const response = await fetch(`${apiBase}/cms/country-guides`);
                 const data = await response.json();
-                if (data && data.length > 0) {
-                    setCountries(data.map(g => ({ name: g.country_name_tr, slug: g.slug })));
-                }
+                // if (data && data.length > 0) {
+                //     setCountries(data.map(g => ({ name: g.country_name_tr, slug: g.slug })));
+                // }
 
                 // Fetch site content for contact info
                 const contentRes = await fetch(`${apiBase}/cms/content`);
@@ -83,15 +87,17 @@ const Navbar = ({ isMenuOpen, setIsMenuOpen }) => {
         { name: "Sea View Apartments", icon: <Building2 size={18} className="text-gray-400" /> },
         { name: "New Developments", icon: <Construction size={18} className="text-gray-400" /> },
         { name: "Investment Land", icon: <Trees size={18} className="text-gray-400" /> },
+        { name: "Beach Front Villas", icon: <Waves size={18} className="text-gray-400" /> },
+        { name: "City Living Apartments", icon: <Building2 size={18} className="text-gray-400" /> },
     ];
 
     const services = [
-        { name: "Property Management", link: "/services#management" },
-        { name: "Legal Consulting", link: "/services#legal" },
-        { name: "Decoration Packages", link: "/services#decoration" },
-        { name: "Transfer Services", link: "/services#transfer" },
-        { name: "After Sales", link: "/services#after-sales" },
-        { name: "Interior Design", link: "/services#interior" },
+        { name: "After Sale Services", link: "/after-sale-services", icon: <ShieldCheck size={18} /> },
+        { name: "Consulting Services", link: "/consulting-services", icon: <Handshake size={18} /> },
+        { name: "Property Management", link: "/property-management", icon: <Building2 size={18} /> },
+        { name: "Transfer Services", link: "/transfer-services", icon: <Car size={18} /> },
+        { name: "Vacation Planner", link: "/vacation-planner", icon: <Sun size={18} /> },
+        { name: "Home Insurance", link: "/home-insurance", icon: <FileCheck size={18} /> },
     ];
 
     const howToBuyItems = [
@@ -99,6 +105,8 @@ const Navbar = ({ isMenuOpen, setIsMenuOpen }) => {
         { name: "In North Cyprus", desc: "Kuzey Kıbrıs'ta Satın Alma", slug: "cyprus" },
         { name: "In Italy", desc: "İtalya'da Satın Alma", slug: "italy" },
         { name: "In Spain", desc: "İspanya'da Satın Alma", slug: "spain" },
+        { name: "In England", desc: "İngiltere'de Satın Alma", slug: "england" },
+        { name: "In USA", desc: "Amerika'da Satın Alma", slug: "usa" },
     ];
 
     const [mobileSubmenu, setMobileSubmenu] = useState(null);
@@ -158,8 +166,7 @@ const Navbar = ({ isMenuOpen, setIsMenuOpen }) => {
                                 { label: "HOW TO BUY", path: "/consulting-services", mega: "how-to-buy" },
                                 { label: "SERVICES", path: "/services", mega: "services" },
                                 { label: "VIEWING TRIP", path: "/contact" },
-                                { label: "ABOUT US", path: "/about" },
-                                { label: "CONTACT", path: "/contact" },
+                                { label: "ABOUT US", path: "/about", mega: "about" },
                                 ...(dynamicMenus || [])
                                     .filter(m => m && m.menu_type === 'header')
                                     .map(m => ({ label: (m.title || "").toUpperCase(), path: m.url }))
@@ -199,50 +206,86 @@ const Navbar = ({ isMenuOpen, setIsMenuOpen }) => {
                 >
                     {/* BUY & PROPERTIES MEGA MENU */}
                     {(activeMegaMenu === 'buy' || activeMegaMenu === 'properties') && (
-                        <div className="max-w-[1200px] mx-auto px-12 py-10 grid grid-cols-2 gap-24">
-                            {/* Regions Column */}
+                        <div className="max-w-[1400px] mx-auto px-12 py-10 grid grid-cols-2 gap-20">
+                            {/* Countries Column */}
                             <div>
-                                <h4 className="text-[10px] tracking-[0.4em] uppercase text-gray-400 font-bold mb-8 flex items-center gap-2">
-                                    <span className="w-4 h-[1px] bg-gray-200"></span>
-                                    LOCATIONS
+                                <h4 className="text-[12px] tracking-[0.4em] uppercase text-black font-black mb-10 text-center">
+                                    COUNTRIES
                                 </h4>
-                                <div className="grid grid-cols-1 gap-6">
-                                    {locations.map((loc) => (
-                                        <Link
-                                            key={loc.name}
-                                            to={`/properties?region=${loc.slug}`}
-                                            className="group flex items-center gap-4 text-caria-slate hover:text-caria-turquoise transition-all duration-300"
-                                            onClick={closeMegaMenu}
-                                        >
-                                            <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-caria-mint transition-colors">
-                                                {loc.icon}
-                                            </div>
-                                            <span className="text-base font-light tracking-wide">{loc.name}</span>
-                                        </Link>
-                                    ))}
+                                <div className="grid grid-cols-2 gap-x-12">
+                                    {/* Left Sub-column (4 countries) */}
+                                    <div className="flex flex-col gap-6">
+                                        {countries.slice(0, 4).map((country) => (
+                                            <Link
+                                                key={country.name}
+                                                to={`/properties?country=${country.slug}`}
+                                                className="group flex items-center gap-3 text-caria-slate hover:text-caria-turquoise transition-all duration-300"
+                                                onClick={closeMegaMenu}
+                                            >
+                                                <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-caria-mint transition-colors shrink-0">
+                                                    <Globe size={18} className="text-caria-turquoise/60" />
+                                                </div>
+                                                <span className="text-[11px] font-medium tracking-widest uppercase">{country.name}</span>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                    {/* Right Sub-column (2 countries) */}
+                                    <div className="flex flex-col gap-6">
+                                        {countries.slice(4, 6).map((country) => (
+                                            <Link
+                                                key={country.name}
+                                                to={`/properties?country=${country.slug}`}
+                                                className="group flex items-center gap-3 text-caria-slate hover:text-caria-turquoise transition-all duration-300"
+                                                onClick={closeMegaMenu}
+                                            >
+                                                <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-caria-mint transition-colors shrink-0">
+                                                    <Globe size={18} className="text-caria-turquoise/60" />
+                                                </div>
+                                                <span className="text-[11px] font-medium tracking-widest uppercase">{country.name}</span>
+                                            </Link>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
 
                             {/* Categories Column */}
                             <div>
-                                <h4 className="text-[10px] tracking-[0.4em] uppercase text-gray-400 font-bold mb-8 flex items-center gap-2">
-                                    <span className="w-4 h-[1px] bg-gray-200"></span>
+                                <h4 className="text-[12px] tracking-[0.4em] uppercase text-black font-black mb-10 text-center">
                                     CATEGORIES
                                 </h4>
-                                <div className="grid grid-cols-1 gap-6">
-                                    {categories.map((cat) => (
-                                        <Link
-                                            key={cat.name}
-                                            to="/properties"
-                                            className="group flex items-center gap-4 text-caria-slate hover:text-caria-turquoise transition-all duration-300"
-                                            onClick={closeMegaMenu}
-                                        >
-                                            <div className="w-10 h-10 flex items-center justify-center">
-                                                {cat.icon}
-                                            </div>
-                                            <span className="text-base font-light tracking-wide">{cat.name}</span>
-                                        </Link>
-                                    ))}
+                                <div className="grid grid-cols-2 gap-x-12">
+                                    {/* Left Sub-column (4 categories) */}
+                                    <div className="flex flex-col gap-6">
+                                        {categories.slice(0, 4).map((cat) => (
+                                            <Link
+                                                key={cat.name}
+                                                to="/properties"
+                                                className="group flex items-center gap-4 text-caria-slate hover:text-caria-turquoise transition-all duration-300"
+                                                onClick={closeMegaMenu}
+                                            >
+                                                <div className="w-10 h-10 flex items-center justify-center shrink-0">
+                                                    {cat.icon}
+                                                </div>
+                                                <span className="text-[11px] font-medium tracking-widest uppercase">{cat.name}</span>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                    {/* Right Sub-column (2 categories) */}
+                                    <div className="flex flex-col gap-6">
+                                        {categories.slice(4, 6).map((cat) => (
+                                            <Link
+                                                key={cat.name}
+                                                to="/properties"
+                                                className="group flex items-center gap-4 text-caria-slate hover:text-caria-turquoise transition-all duration-300"
+                                                onClick={closeMegaMenu}
+                                            >
+                                                <div className="w-10 h-10 flex items-center justify-center shrink-0">
+                                                    {cat.icon}
+                                                </div>
+                                                <span className="text-[11px] font-medium tracking-widest uppercase">{cat.name}</span>
+                                            </Link>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -250,9 +293,9 @@ const Navbar = ({ isMenuOpen, setIsMenuOpen }) => {
 
                     {/* COUNTRIES DROPDOWN */}
                     {activeMegaMenu === 'countries' && (
-                        <div className="max-w-[800px] mx-auto py-10 px-12">
+                        <div className="max-w-[1000px] mx-auto py-10 px-12">
                             <h4 className="text-[10px] tracking-[0.5em] uppercase text-gray-400 font-bold mb-8 text-center">EXPLORE COUNTRIES</h4>
-                            <div className="grid grid-cols-4 gap-8">
+                            <div className="grid grid-cols-3 gap-x-12 gap-y-10">
                                 {countries.map((country) => (
                                     <Link
                                         key={country.name}
@@ -263,7 +306,7 @@ const Navbar = ({ isMenuOpen, setIsMenuOpen }) => {
                                         <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-caria-mint transition-colors">
                                             <Globe size={20} className="text-caria-turquoise/60" />
                                         </div>
-                                        <span className="text-xs font-light tracking-widest uppercase">{country.name}</span>
+                                        <span className="text-[11px] font-medium tracking-widest uppercase">{country.name}</span>
                                     </Link>
                                 ))}
                             </div>
@@ -279,11 +322,13 @@ const Navbar = ({ isMenuOpen, setIsMenuOpen }) => {
                                     <Link
                                         key={service.name}
                                         to={service.link}
-                                        className="text-[13px] font-extralight tracking-widest text-caria-slate hover:text-caria-turquoise transition-all duration-300 py-3 border-b border-gray-50 hover:border-caria-mint flex items-center justify-between group"
+                                        className="text-[11px] font-medium tracking-widest text-caria-slate hover:text-caria-turquoise transition-all duration-300 py-3 border-b border-gray-50 hover:border-caria-mint flex items-center gap-3 group uppercase"
                                         onClick={closeMegaMenu}
                                     >
+                                        <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-caria-mint transition-colors shrink-0 text-gray-400 group-hover:text-caria-turquoise">
+                                            {React.cloneElement(service.icon, { size: 16 })}
+                                        </div>
                                         <span className="opacity-80 group-hover:opacity-100">{service.name}</span>
-                                        <ChevronDown size={12} className="-rotate-90 opacity-0 group-hover:opacity-100 transition-all text-caria-mint" />
                                     </Link>
                                 ))}
                             </div>
@@ -293,7 +338,7 @@ const Navbar = ({ isMenuOpen, setIsMenuOpen }) => {
                     {activeMegaMenu === 'how-to-buy' && (
                         <div className="max-w-[1000px] mx-auto py-10 px-12">
                             <h4 className="text-[10px] tracking-[0.5em] uppercase text-gray-400 font-bold mb-10 text-center">HOW TO BUY</h4>
-                            <div className="grid grid-cols-4 gap-8">
+                            <div className="grid grid-cols-3 gap-8">
                                 {howToBuyItems.map((item) => (
                                     <Link
                                         key={item.name}
@@ -313,6 +358,38 @@ const Navbar = ({ isMenuOpen, setIsMenuOpen }) => {
                             </div>
                         </div>
                     )}
+                    {/* ABOUT US DROPDOWN */}
+                    {activeMegaMenu === "about" && (
+                        <div className="max-w-[600px] mx-auto py-12 px-10">
+                            <h4 className="text-[10px] tracking-[0.5em] uppercase text-gray-400 font-bold mb-10 text-center">ABOUT</h4>
+                            <div className="flex flex-row items-center justify-center space-x-16">
+                                <Link
+                                    to="/about"
+                                    className="group flex items-center gap-3 text-[11px] font-medium tracking-[0.2em] text-caria-slate hover:text-caria-turquoise transition-all duration-300 uppercase"
+                                    onClick={closeMegaMenu}
+                                >
+                                    <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-caria-mint transition-colors shrink-0">
+                                        <Users size={18} className="text-caria-turquoise/60" />
+                                    </div>
+                                    <span>About Us</span>
+                                </Link>
+
+                                <div className="h-8 w-[1px] bg-gray-100" />
+
+                                <Link
+                                    to="/contact"
+                                    className="group flex items-center gap-3 text-[11px] font-medium tracking-[0.2em] text-caria-slate hover:text-caria-turquoise transition-all duration-300 uppercase"
+                                    onClick={closeMegaMenu}
+                                >
+                                    <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-caria-mint transition-colors shrink-0">
+                                        <Mail size={18} className="text-caria-turquoise/60" />
+                                    </div>
+                                    <span>Contact</span>
+                                </Link>
+                            </div>
+                        </div>
+                    )}
+
                 </div>
             </header>
 
@@ -337,8 +414,14 @@ const Navbar = ({ isMenuOpen, setIsMenuOpen }) => {
                                 },
                                 { label: "SERVICES", path: "/services" },
                                 { label: "VIEWING TRIP", path: "/contact" },
-                                { label: "ABOUT US", path: "/about" },
-                                { label: "CONTACT", path: "/contact" },
+                                {
+                                    label: "ABOUT US",
+                                    path: "/about",
+                                    submenu: [
+                                        { name: "About Us", link: "/about" },
+                                        { name: "Contact", link: "/contact" }
+                                    ]
+                                },
                                 ...(dynamicMenus || [])
                                     .filter(m => m && m.menu_type === 'header')
                                     .map(m => ({ label: (m.title || "").toUpperCase(), path: m.url }))
@@ -370,7 +453,7 @@ const Navbar = ({ isMenuOpen, setIsMenuOpen }) => {
                                             {item.submenu.map((sub) => (
                                                 <Link
                                                     key={sub.name}
-                                                    to={`/consulting-services?country=${sub.slug}`}
+                                                    to={sub.path || sub.link || (item.label === "HOW TO BUY" ? `/consulting-services?country=${sub.slug}` : `/${sub.slug}`)}
                                                     className="text-sm font-light tracking-[0.1em] text-caria-slate/70 flex flex-col"
                                                     onClick={() => setIsMenuOpen(false)}
                                                 >

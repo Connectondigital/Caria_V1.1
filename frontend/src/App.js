@@ -30,7 +30,17 @@ import {
   TrendingUp,
   Diamond,
   Key,
-  Star
+  Star,
+  Sparkles,
+  Handshake,
+  Target,
+  ShieldCheck,
+  Compass,
+  Palette,
+  Car,
+  Sun,
+  FileCheck,
+  Globe
 } from "lucide-react";
 
 const BACKEND_URL = "http://localhost:5001";
@@ -441,7 +451,7 @@ const AdvancedSearchBar = ({ properties }) => {
   };
 
   return (
-    <section className="bg-caria-mint pb-20 md:pb-28" data-testid="search-section">
+    <section className="bg-caria-mint pt-16 md:pt-24 pb-20 md:pb-28" data-testid="search-section">
       <div className="max-w-[1440px] mx-auto px-8 lg:px-12">
         {/* Section Title */}
         <h2 className="font-serif text-3xl md:text-4xl text-caria-slate text-center mb-12" data-testid="search-title">
@@ -1111,30 +1121,26 @@ const CopyrightBar = () => {
 const StatsSection = () => {
   const features = [
     {
-      title: "REFINED LIVING",
-      description: "Luxury extends beyond expansive spaces. It is defined by curated lifestyles, sophisticated tastes, and environments tailored specifically to your personal definition of comfort.",
-      icon: <Diamond className="w-12 h-12 text-[#0F5E63] mb-6" />
+      title: "LUXURY LIVING",
+      description: "Today, the definition of luxury homes goes well beyond simply 'big' or 'expensive.' Today's luxury is defined by personal preferences. It represents your lifestyle, your personal taste",
+      icon: <Sparkles className="w-12 h-12 text-[#0F5E63] mb-4" />
     },
     {
-      title: "BESPOKE SERVICE",
-      description: "From arranging private viewing itineraries to the final handover of your Northern Cyprus residence, we manage every detail with unwavering diligence and professionalism.",
-      icon: <Key className="w-12 h-12 text-[#0F5E63] mb-6" />
+      title: "PERSONALIZED SERVICE",
+      description: "From arranging your customized viewing trip to delivering your property in North Cyprus, we as Caria Estates will take care of every detail throughout the process",
+      icon: <Handshake className="w-12 h-12 text-[#0F5E63] mb-4" />
     },
     {
-      title: "CURATED SELECTION",
-      description: "We go beyond the listing to secure properties that align with your vision. Every option is rigorously vetted for prime location, exceptional value, and enduring investment potential.",
-      icon: <HomeIcon className="w-12 h-12 text-[#0F5E63] mb-6" />
+      title: "PERFECT MATCH",
+      description: "We are proud to say that we will go an extra mile to find your luxury property in Cyprus, with best the price and perfect location. We carefully hand pick each of our properties",
+      icon: <Target className="w-12 h-12 text-[#0F5E63] mb-4" />
     }
   ];
 
   return (
-    <section className="bg-white py-16 md:py-24" data-testid="stats-section">
+    <section className="bg-white pt-2 pb-16 md:pt-4 md:pb-24" data-testid="stats-section">
       <div className="max-w-7xl mx-auto px-6">
-        {/* Branding Logo */}
-        <div className="flex justify-center mb-16 transition-all duration-1000 animate-in fade-in slide-in-from-bottom-4">
-          <img src="/logo.png" alt="Caria Estates" className="h-16 w-auto opacity-80" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-16 md:gap-24 text-center">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-16 text-center">
           {features.map((feature, idx) => (
             <div key={idx} className="flex flex-col items-center">
               <div className="mb-2 opacity-90 transition-transform duration-500 hover:scale-110">
@@ -2597,37 +2603,49 @@ const ServicesPage = () => {
       id: 1,
       title: "After Sale Services",
       description: "We believe after-sale service is one of the most important elements when buying property. We support you with every detail after your purchase.",
-      image: "https://images.unsplash.com/photo-1556761175-b413da4baf72?w=800&h=600&fit=crop"
+      image: "https://images.unsplash.com/photo-1556761175-b413da4baf72?w=800&h=600&fit=crop",
+      icon: <ShieldCheck size={28} />,
+      link: "/after-sale-services"
     },
     {
       id: 2,
       title: "Consulting Services",
       description: "Whenever you need guidance during your buying process or have questions about real estate, we are always one call away.",
-      image: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=800&h=600&fit=crop"
+      image: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=800&h=600&fit=crop",
+      icon: <Handshake size={28} />,
+      link: "/consulting-services"
     },
     {
       id: 3,
-      title: "Home Decoration",
-      description: "We make the entire furniture-buying and setup process smooth and comfortable, following each step on your behalf.",
-      image: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=800&h=600&fit=crop"
+      title: "Property Management",
+      description: "Our professional property management services ensure your investment is maintained to the highest standards, offering peace of mind while you are away.",
+      image: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop",
+      icon: <Building2 size={28} />,
+      link: "/property-management"
     },
     {
       id: 4,
-      title: "Transfer",
+      title: "Transfer Services",
       description: "For airport transfers or any transportation needs, we arrange everything for you safely and efficiently.",
-      image: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800&h=600&fit=crop"
+      image: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800&h=600&fit=crop",
+      icon: <Car size={28} />,
+      link: "/transfer-services"
     },
     {
       id: 5,
       title: "Vacation Planner",
       description: "After settling into your new home, we help you discover the region and enjoy the best experiences Northern Cyprus has to offer.",
-      image: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&h=600&fit=crop"
+      image: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&h=600&fit=crop",
+      icon: <Sun size={28} />,
+      link: "/vacation-planner"
     },
     {
       id: 6,
       title: "Home Insurance",
       description: "We strongly recommend full home insurance for your new property. We handle the entire process quickly and reliably.",
-      image: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop"
+      image: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop",
+      icon: <FileCheck size={28} />,
+      link: "/home-insurance"
     }
   ];
 
@@ -2636,66 +2654,67 @@ const ServicesPage = () => {
       <div className="h-16 md:h-20" />
 
       {/* HERO SECTION */}
-      <section className="pt-32 pb-20 md:pt-40 md:pb-28">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl text-caria-slate font-light mb-8">
+      <section className="relative h-[60vh] flex items-center justify-center overflow-hidden">
+        <div className="absolute inset-0">
+          <img
+            src="https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=1920&h=1080&fit=crop"
+            alt="Services Banner"
+            className="w-full h-full object-cover blur-[2px]"
+          />
+          <div className="absolute inset-0 bg-black/50" />
+        </div>
+        <div className="relative z-10 max-w-4xl mx-auto px-6 text-center text-white">
+          <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl font-light mb-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
             Services
           </h1>
+          <div className="w-24 h-[2px] bg-caria-turquoise mx-auto mb-8" />
           {topHtml ? (
-            <div className="text-lg md:text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto mb-12 cms-content" dangerouslySetInnerHTML={{ __html: topHtml }} />
+            <div className="text-lg md:text-xl text-white/90 leading-relaxed max-w-2xl mx-auto font-light tracking-wide cms-content" dangerouslySetInnerHTML={{ __html: topHtml }} />
           ) : (
-            <p className="text-lg md:text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto mb-12">
-              Premium real estate, investment, lifestyle and after-sales services tailored for international buyers in Northern Cyprus.
+            <p className="text-lg md:text-xl text-white/90 leading-relaxed max-w-2xl mx-auto font-light tracking-wide italic">
+              "Excellence is not an act, but a habit. Our bespoke services are designed to ensure your journey in Mediterranean living is seamless, secure, and extraordinary."
             </p>
           )}
-          <div className="w-24 h-px bg-gray-200 mx-auto" />
         </div>
       </section>
 
       {/* SERVICES GRID SECTION */}
-      <section className="py-16 md:py-24">
+      <section className="py-20 md:py-32 bg-gray-50/30">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 md:gap-12">
             {services.map((service, index) => (
-              <div
+              <Link
                 key={service.id}
-                className="group animate-fade-in"
+                to={service.link}
+                className="group flex flex-col bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 animate-fade-in"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 {/* Service Image */}
-                <div className="relative h-80 md:h-96 overflow-hidden rounded-lg mb-6">
+                <div className="relative h-64 overflow-hidden">
                   <img
                     src={service.image}
                     alt={service.title}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                   />
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-500" />
+                  <div className="absolute top-6 left-6 bg-white/90 backdrop-blur-md p-3 rounded-xl text-caria-turquoise shadow-lg scale-90 group-hover:scale-100 transition-transform duration-500">
+                    {service.icon}
+                  </div>
                 </div>
 
                 {/* Service Content */}
-                <div>
-                  <h2 className="font-serif text-2xl md:text-3xl text-caria-slate mb-4">
+                <div className="p-8 flex flex-col flex-grow">
+                  <h2 className="font-serif text-2xl text-caria-slate mb-4 group-hover:text-caria-turquoise transition-colors duration-300">
                     {service.title}
                   </h2>
-                  <p className="text-gray-600 leading-relaxed mb-6">
+                  <p className="text-gray-500 leading-relaxed mb-8 flex-grow">
                     {service.description}
                   </p>
-                  <Link
-                    to={
-                      service.id === 1 ? "/after-sale-services" :
-                        service.id === 2 ? "/consulting-services" :
-                          service.id === 3 ? "/home-decoration" :
-                            service.id === 4 ? "/transfer-services" :
-                              service.id === 5 ? "/vacation-planner" :
-                                service.id === 6 ? "/home-insurance" :
-                                  "/contact"
-                    }
-                    className="inline-flex items-center gap-2 text-[#1BAFA2] text-sm font-medium tracking-wider uppercase hover:gap-3 transition-all"
-                  >
-                    Learn More
-                    <ChevronRight size={16} />
-                  </Link>
+                  <div className="flex items-center text-xs font-bold tracking-[0.2em] text-caria-turquoise uppercase group-hover:translate-x-2 transition-transform duration-300">
+                    Discover More <ChevronRight size={14} className="ml-2" />
+                  </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
