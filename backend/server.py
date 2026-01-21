@@ -1,26 +1,36 @@
-import sqlite3
-from fastapi import FastAPI, APIRouter, HTTPException, Depends
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, File, UploadFile
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 import os
+import shutil
 import logging
 from pathlib import Path
 from pydantic import BaseModel
 from typing import List, Optional
+import uuid
+import sqlite3
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 app = FastAPI()
 
-# Configure CORS
+# Configure CORS (Robust for Local Development)
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:5173", "http://127.0.0.1:3000", "http://127.0.0.1:3001"],
     allow_credentials=True,
-    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Ensure uploads directory exists
+UPLOAD_DIR = ROOT_DIR / "static" / "uploads"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+# Mount static files
+app.mount("/static", StaticFiles(directory=ROOT_DIR / "static"), name="static")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -97,13 +107,22 @@ class HomepageBlock(BaseModel):
 
 class Advisor(BaseModel):
     id: Optional[int] = None
-    name: str
-    slug: str
-    title: Optional[str] = ""
-    email: Optional[str] = ""
-    phone: Optional[str] = ""
-    bio_html: Optional[str] = ""
-    image_url: Optional[str] = ""
+    name: str = ""
+    slug: str = ""
+    title_tr: str = ""
+    title_en: str = ""
+    email: str = ""
+    phone: str = ""
+    whatsappPhone: str = ""
+    portraitUrl: str = ""
+    coverImageUrl: str = ""
+    bioRichTextTR: str = ""
+    bioRichTextEN: str = ""
+    languages: str = ""
+    regions: str = ""
+    specialties: str = ""
+    socialLinks: str = "{}"
+    isActive: bool = True
 
 # Helper to seed initial pages if missing
 def seed_initial_pages(db):
@@ -135,12 +154,19 @@ class Menu(BaseModel):
 class Inquiry(BaseModel):
     id: Optional[int] = None
     name: str
-    email: Optional[str] = ""
+    email: str
     phone: Optional[str] = ""
     message: Optional[str] = ""
     property_id: Optional[int] = None
     status: Optional[str] = "new"
-    created_at: Optional[str] = None
+
+class PropertyFeature(BaseModel):
+    id: Optional[int] = None
+    category: str
+    title_tr: str
+    title_en: str
+    is_active: bool = True
+    sort_order: int = 0
 
 class Property(BaseModel):
     id: Optional[int] = None
@@ -157,8 +183,9 @@ class Property(BaseModel):
     tag: Optional[str] = ""
     region: Optional[str] = ""
     kocan_tipi: Optional[str] = ""
-    ozellikler_ic: Optional[str] = ""
-    ozellikler_dis: Optional[str] = ""
+    ozellikler_ic: Optional[str] = "[]"
+    ozellikler_dis: Optional[str] = "[]"
+    ozellikler_konum: Optional[str] = "[]"
     pdf_brosur: Optional[str] = ""
     advisor_id: Optional[int] = None
     status: Optional[str] = "published"
@@ -170,6 +197,16 @@ class Property(BaseModel):
     closed_area: Optional[str] = ""
     is_featured: bool = False
     title_en: Optional[str] = ""
+    balcony: Optional[str] = ""
+    distance_sea: Optional[str] = ""
+    distance_center: Optional[str] = ""
+    distance_airport: Optional[str] = ""
+    gallery: Optional[str] = "[]"
+    property_type: Optional[str] = "Villa"
+    is_furnished: Optional[str] = "Hayır"
+    building_age: Optional[str] = "0"
+    floor_level: Optional[str] = "1"
+    site_within: Optional[str] = "Hayır"
 
 # Routes
 api_router = APIRouter(prefix="/api")
@@ -191,20 +228,44 @@ async def add_property(item: Property, db: sqlite3.Connection = Depends(get_db))
     if item.id:
         cursor.execute("""
             UPDATE listings SET 
-            slug=?, title=?, location=?, price=?, beds=?, baths=?, area=?, plotSize=?, reference=?, image=?, tag=?, region=?, 
-            kocan_tipi=?, ozellikler_ic=?, ozellikler_dis=?, pdf_brosur=?, advisor_id=?, status=?, description=?,
-            description_en=?, beds_room_count=?, baths_count=?, plot_area=?, closed_area=?, is_featured=?, title_en=?
+            slug=?, title=?, location=?, price=?, 
+            image=?, region=?, kocan_tipi=?, 
+            ozellikler_ic=?, ozellikler_dis=?, ozellikler_konum=?, advisor_id=?, 
+            description=?, beds_room_count=?, baths_count=?, 
+            plot_area=?, closed_area=?, is_featured=?, title_en=?, 
+            description_en=?, balcony=?, distance_sea=?, 
+            distance_center=?, distance_airport=?, gallery=?,
+            property_type=?, is_furnished=?, building_age=?, floor_level=?, site_within=?
             WHERE id=?
-        """, (item.slug, item.title, item.location, item.price, item.beds, item.baths, item.area, item.plotSize, item.reference, item.image, item.tag, item.region, 
-              item.kocan_tipi, item.ozellikler_ic, item.ozellikler_dis, item.pdf_brosur, item.advisor_id, item.status, item.description,
-              item.description_en, item.beds_room_count, item.baths_count, item.plot_area, item.closed_area, item.is_featured, item.title_en, item.id))
+        """, (
+            item.slug, item.title, item.location, item.price, 
+            item.image, item.region, item.kocan_tipi, 
+            item.ozellikler_ic, item.ozellikler_dis, item.ozellikler_konum, item.advisor_id, 
+            item.description, item.beds_room_count, item.baths_count, 
+            item.plot_area, item.closed_area, item.is_featured, item.title_en, 
+            item.description_en, item.balcony, item.distance_sea, 
+            item.distance_center, item.distance_airport, item.gallery,
+            item.property_type, item.is_furnished, item.building_age, item.floor_level, item.site_within, item.id
+        ))
     else:
         cursor.execute("""
-            INSERT INTO listings (slug, title, location, price, beds, baths, area, plotSize, reference, image, tag, region, kocan_tipi, ozellikler_ic, ozellikler_dis, pdf_brosur, advisor_id, status, description, description_en, beds_room_count, baths_count, plot_area, closed_area, is_featured, title_en)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (item.slug, item.title, item.location, item.price, item.beds, item.baths, item.area, item.plotSize, item.reference, item.image, item.tag, item.region, 
-              item.kocan_tipi, item.ozellikler_ic, item.ozellikler_dis, item.pdf_brosur, item.advisor_id, item.status, item.description, item.description_en,
-              item.beds_room_count, item.baths_count, item.plot_area, item.closed_area, item.is_featured, item.title_en))
+            INSERT INTO listings (
+                slug, title, location, price, image, region, 
+                kocan_tipi, ozellikler_ic, ozellikler_dis, ozellikler_konum, advisor_id, 
+                description, beds_room_count, baths_count, plot_area, 
+                closed_area, is_featured, title_en, description_en, 
+                balcony, distance_sea, distance_center, distance_airport, gallery,
+                property_type, is_furnished, building_age, floor_level, site_within
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            item.slug, item.title, item.location, item.price, item.image, item.region, 
+            item.kocan_tipi, item.ozellikler_ic, item.ozellikler_dis, item.ozellikler_konum, item.advisor_id, 
+            item.description, item.beds_room_count, item.baths_count, item.plot_area, 
+            item.closed_area, item.is_featured, item.title_en, item.description_en, 
+            item.balcony, item.distance_sea, item.distance_center, item.distance_airport, item.gallery,
+            item.property_type, item.is_furnished, item.building_age, item.floor_level, item.site_within
+        ))
     db.commit()
     return {"status": "success", "id": cursor.lastrowid if not item.id else item.id}
 
@@ -215,7 +276,14 @@ async def get_property(slug: str, db: sqlite3.Connection = Depends(get_db)):
     row = cursor.fetchone()
     if not row:
         raise HTTPException(status_code=404, detail="Property not found")
-    return dict(row)
+    
+    prop = dict(row)
+    if prop.get('advisor_id'):
+        cursor.execute("SELECT * FROM advisors WHERE id=?", (prop['advisor_id'],))
+        adv = cursor.fetchone()
+        if adv:
+            prop['advisor'] = dict(adv)
+    return prop
 
 @api_router.delete("/properties/{id}")
 async def delete_property(id: int, db: sqlite3.Connection = Depends(get_db)):
@@ -242,10 +310,54 @@ async def add_inquiry(item: Inquiry, db: sqlite3.Connection = Depends(get_db)):
     db.commit()
     return {"status": "success", "id": cursor.lastrowid}
 
+@api_router.post("/upload")
+async def upload_file(file: UploadFile = File(...)):
+    file_extension = Path(file.filename).suffix
+    unique_filename = f"{uuid.uuid4()}{file_extension}"
+    file_path = UPLOAD_DIR / unique_filename
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    # Return the absolute URL for the admin/frontend to use
+    # In production, this would be relative to the domain
+    url = f"/static/uploads/{unique_filename}"
+    return {"url": url}
+
 @api_router.delete("/inquiries/{id}")
 async def delete_inquiry(id: int, db: sqlite3.Connection = Depends(get_db)):
     cursor = db.cursor()
     cursor.execute("DELETE FROM inquiries WHERE id=?", (id,))
+    db.commit()
+    return {"status": "success"}
+
+# Feature Definitions Endpoints
+@api_router.get("/cms/features")
+async def get_features(db: sqlite3.Connection = Depends(get_db)):
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM property_features WHERE is_active = 1 ORDER BY sort_order ASC")
+    rows = cursor.fetchall()
+    features = [dict(row) for row in rows]
+    return features
+
+@api_router.post("/cms/features")
+async def save_feature(item: PropertyFeature, db: sqlite3.Connection = Depends(get_db)):
+    cursor = db.cursor()
+    if item.id:
+        cursor.execute("""
+            UPDATE property_features SET category=?, title_tr=?, title_en=?, is_active=?, sort_order=? WHERE id=?
+        """, (item.category, item.title_tr, item.title_en, item.is_active, item.sort_order, item.id))
+    else:
+        cursor.execute("""
+            INSERT INTO property_features (category, title_tr, title_en, is_active, sort_order) VALUES (?, ?, ?, ?, ?)
+        """, (item.category, item.title_tr, item.title_en, item.is_active, item.sort_order))
+    db.commit()
+    return {"status": "success", "id": cursor.lastrowid if not item.id else item.id}
+
+@api_router.delete("/cms/features/{id}")
+async def delete_feature(id: int, db: sqlite3.Connection = Depends(get_db)):
+    cursor = db.cursor()
+    cursor.execute("DELETE FROM property_features WHERE id=?", (id,))
     db.commit()
     return {"status": "success"}
 
@@ -465,7 +577,10 @@ async def get_advisors(db: sqlite3.Connection = Depends(get_db)):
     cursor = db.cursor()
     cursor.execute("SELECT * FROM advisors")
     rows = cursor.fetchall()
-    return [dict(row) for row in rows]
+    advisors = [dict(row) for row in rows]
+    for adv in advisors:
+        adv['name'] = adv.get('fullName', '')
+    return advisors
 
 @api_router.get("/advisors/{slug}")
 async def get_advisor_by_slug(slug: str, db: sqlite3.Connection = Depends(get_db)):
@@ -477,27 +592,78 @@ async def get_advisor_by_slug(slug: str, db: sqlite3.Connection = Depends(get_db
     
     advisor = dict(row)
     
-    # Also fetch this advisor's listings
-    cursor.execute("SELECT * FROM listings WHERE advisor_id = ?", (advisor['id'],))
+    if not advisor.get('isActive'):
+        # Return restricted data if inactive
+        return {"name": advisor['fullName'], "isActive": False, "status": "Advisor not available"}
+
+    # Also fetch this advisor's listings (PUBLIC: only published)
+    cursor.execute("SELECT * FROM listings WHERE advisor_id = ? AND status='published'", (advisor['id'],))
     advisor['listings'] = [dict(r) for r in cursor.fetchall()]
     
+    advisor['name'] = advisor.get('fullName', '')
     return advisor
+
+@api_router.get("/advisors/{id}/listings")
+async def get_advisor_listings(id: int, db: sqlite3.Connection = Depends(get_db)):
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM listings WHERE advisor_id = ?", (id,))
+    rows = cursor.fetchall()
+    return [dict(row) for row in rows]
 
 @api_router.post("/advisors")
 async def save_advisor(item: Advisor, db: sqlite3.Connection = Depends(get_db)):
-    cursor = db.cursor()
-    if item.id:
-        cursor.execute("""
-            UPDATE advisors SET name=?, slug=?, title=?, email=?, phone=?, bio_html=?, image_url=?
-            WHERE id=?
-        """, (item.name, item.slug, item.title, item.email, item.phone, item.bio_html, item.image_url, item.id))
-    else:
-        cursor.execute("""
-            INSERT INTO advisors (name, slug, title, email, phone, bio_html, image_url)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (item.name, item.slug, item.title, item.email, item.phone, item.bio_html, item.image_url))
-    db.commit()
-    return {"status": "success", "id": cursor.lastrowid if not item.id else item.id}
+    try:
+        cursor = db.cursor()
+        logger.info(f"Saving advisor: {item.name}")
+    
+        # Slug generation if missing
+        if not item.slug:
+            import re
+            base_slug = item.name.lower().replace(" ", "-") if item.name else "advisor"
+            base_slug = re.sub(r'[^\w\-]', '', base_slug)
+            if not base_slug: base_slug = "advisor"
+            slug = base_slug
+            counter = 1
+            while True:
+                cursor.execute("SELECT id FROM advisors WHERE slug = ? AND id != ?", (slug, item.id or -1))
+                if not cursor.fetchone():
+                    break
+                counter += 1
+                slug = f"{base_slug}-{counter}"
+            item.slug = slug
+
+        if item.id:
+            cursor.execute("""
+                UPDATE advisors SET 
+                    fullName=?, slug=?, title_tr=?, title_en=?, email=?, phone=?, 
+                    whatsappPhone=?, portraitUrl=?, coverImageUrl=?, bioRichTextTR=?, bioRichTextEN=?, 
+                    languages=?, regions=?, specialties=?, socialLinks=?, isActive=?
+                WHERE id=?
+            """, (
+                item.name, item.slug, item.title_tr, item.title_en, item.email, item.phone,
+                item.whatsappPhone, item.portraitUrl, item.coverImageUrl, item.bioRichTextTR, item.bioRichTextEN,
+                item.languages, item.regions, item.specialties, item.socialLinks, item.isActive, item.id
+            ))
+        else:
+            cursor.execute("""
+                INSERT INTO advisors (
+                    fullName, slug, title_tr, title_en, email, phone, 
+                    whatsappPhone, portraitUrl, coverImageUrl, bioRichTextTR, bioRichTextEN, 
+                    languages, regions, specialties, socialLinks, isActive
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                item.name, item.slug, item.title_tr, item.title_en, item.email, item.phone,
+                item.whatsappPhone, item.portraitUrl, item.coverImageUrl, item.bioRichTextTR, item.bioRichTextEN,
+                item.languages, item.regions, item.specialties, item.socialLinks, item.isActive
+            ))
+        db.commit()
+        return {"status": "success", "id": cursor.lastrowid if not item.id else item.id}
+    except Exception as e:
+        logger.error(f"Error saving advisor: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.delete("/advisors/{id}")
 async def delete_advisor(id: int, db: sqlite3.Connection = Depends(get_db)):
@@ -514,4 +680,4 @@ if __name__ == "__main__":
     with sqlite3.connect(DB_PATH) as conn:
         seed_initial_pages(conn)
     port = int(os.environ.get('PORT', 5001))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run("server:app", host="0.0.0.0", port=port, reload=True)

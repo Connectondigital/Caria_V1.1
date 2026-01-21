@@ -8,6 +8,7 @@ import Settings from "views/admin/settings";
 import Pages from "views/admin/pages";
 import Menus from "views/admin/menus";
 import Advisors from "views/admin/advisors";
+import Features from "views/admin/features";
 
 // Auth Imports
 import SignIn from "views/auth/SignIn";
@@ -21,6 +22,7 @@ import {
   MdLock,
   MdDescription,
   MdMenu,
+  MdList,
 } from "react-icons/md";
 
 const routes = [
@@ -37,6 +39,13 @@ const routes = [
     path: "properties",
     icon: <MdOutlineStore className="h-6 w-6" />,
     component: <Properties />,
+  },
+  {
+    name: "Özellik Yönetimi",
+    layout: "/admin",
+    path: "features",
+    icon: <MdList className="h-6 w-6" />,
+    component: <Features />,
   },
   {
     name: "İlan Talepleri",

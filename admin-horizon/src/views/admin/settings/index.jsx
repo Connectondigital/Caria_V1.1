@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Card from "components/card";
 import InputField from "components/fields/InputField";
 import { cmsService } from "../../../api";
+import FeaturesManager from "./components/FeaturesManager";
 
 const Settings = () => {
     const [sliders, setSliders] = useState([]);
@@ -48,22 +49,22 @@ const Settings = () => {
     };
 
     return (
-        <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-8 pb-10">
             {/* Slider Management */}
             <Card extra={"w-full p-6 h-fit"}>
                 <h4 className="text-xl font-bold text-navy-700 dark:text-white mb-4">Slider Yönetimi</h4>
                 <form onSubmit={handleAddSlider} className="mb-6 border-b pb-6">
                     <InputField label="Slider Başlığı" id="title" placeholder="Lüks Villa" value={newSlider.title} onChange={(e) => setNewSlider({ ...newSlider, title: e.target.value })} />
                     <InputField label="Görsel URL" id="image_url" placeholder="https://..." value={newSlider.image_url} onChange={(e) => setNewSlider({ ...newSlider, image_url: e.target.value })} />
-                    <button type="submit" className="mt-3 w-full rounded-xl bg-brand-500 py-3 text-white font-medium hover:bg-brand-600">Slider Ekle</button>
+                    <button type="submit" className="mt-3 w-full rounded-xl bg-brand-500 py-3 text-white font-medium hover:bg-brand-600 transition-duration-200">Slider Ekle</button>
                 </form>
                 <div className="space-y-4">
                     {sliders.map(s => (
-                        <div key={s.id} className="flex items-center gap-4 p-3 border rounded-xl">
+                        <div key={s.id} className="flex items-center gap-4 p-3 border rounded-xl hover:border-brand-100 group transition-all">
                             <img src={s.image_url} alt="" className="h-12 w-12 rounded-lg object-cover" />
-                            <div>
-                                <p className="text-sm font-bold text-navy-700">{s.title}</p>
-                                <p className="text-xs text-gray-400">{s.link}</p>
+                            <div className="flex-1">
+                                <p className="text-sm font-bold text-navy-700 dark:text-white">{s.title}</p>
+                                <p className="text-[10px] text-gray-400 font-mono truncate max-w-[200px]">{s.link}</p>
                             </div>
                         </div>
                     ))}
@@ -76,9 +77,9 @@ const Settings = () => {
                 <div className="space-y-6">
                     {content.filter(c => c.section === "intro" || c.section === "footer").map(item => (
                         <div key={item.content_key}>
-                            <label className="text-sm font-bold text-gray-700 mb-2 block">{item.content_key.replace(/_/g, " ").toUpperCase()}</label>
+                            <label className="text-sm font-bold text-gray-700 dark:text-white/80 mb-2 block">{item.content_key.replace(/_/g, " ").toUpperCase()}</label>
                             <textarea
-                                className="w-full rounded-xl border border-gray-200 p-3 text-sm focus:border-brand-500 font-light leading-relaxed"
+                                className="w-full rounded-xl border border-gray-200 dark:bg-navy-900 dark:border-white/10 p-3 text-sm focus:border-brand-500 font-light leading-relaxed dark:text-white/90"
                                 rows="8"
                                 value={item.value_tr}
                                 onChange={(e) => handleContentChange(item.content_key, e.target.value)}

@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BACKEND_URL = "http://localhost:5001";
+export const BACKEND_URL = "http://localhost:5001";
 const API_BASE_URL = `${BACKEND_URL}/api`;
 
 const api = axios.create({
@@ -12,6 +12,15 @@ export const propertyService = {
     getProperty: (slug) => api.get(`/properties/${slug}`),
     addProperty: (data) => api.post("/properties", data),
     deleteProperty: (id) => api.delete(`/properties/${id}`),
+    uploadImage: (file) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        return api.post("/upload", formData, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        });
+    },
 };
 
 export const inquiryService = {
@@ -43,6 +52,7 @@ export const menuService = {
 export const advisorService = {
     getAdvisors: () => api.get("/advisors"),
     getAdvisor: (slug) => api.get(`/advisors/${slug}`),
+    getAdvisorListings: (id) => api.get(`/advisors/${id}/listings`),
     saveAdvisor: (data) => api.post("/advisors", data),
     deleteAdvisor: (id) => api.delete(`/advisors/${id}`),
 };
@@ -51,6 +61,12 @@ export const homepageService = {
     getBlocks: () => api.get("/cms/homepage"),
     saveBlock: (data) => api.post("/cms/homepage", data),
     deleteBlock: (id) => api.delete(`/cms/homepage/${id}`),
+};
+
+export const featureService = {
+    getFeatures: () => api.get("/cms/features"),
+    saveFeature: (data) => api.post("/cms/features", data),
+    deleteFeature: (id) => api.delete(`/cms/features/${id}`),
 };
 
 export default api;

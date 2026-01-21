@@ -54,7 +54,7 @@ const Advisors = () => {
     };
 
     const columns = [
-        columnHelper.accessor("image_url", {
+        columnHelper.accessor("portraitUrl", {
             id: "image",
             header: () => <p className="text-sm font-bold text-gray-600">GÖRSEL</p>,
             cell: (info) => (
@@ -65,8 +65,8 @@ const Advisors = () => {
                 />
             ),
         }),
-        columnHelper.accessor("name", {
-            id: "name",
+        columnHelper.accessor("fullName", {
+            id: "fullName",
             header: () => <p className="text-sm font-bold text-gray-600">AD SOYAD</p>,
             cell: (info) => (
                 <p className="text-sm font-bold text-navy-700 dark:text-white">
@@ -74,7 +74,7 @@ const Advisors = () => {
                 </p>
             ),
         }),
-        columnHelper.accessor("title", {
+        columnHelper.accessor("title_tr", {
             id: "title",
             header: () => <p className="text-sm font-bold text-gray-600">ÜNVAN</p>,
             cell: (info) => (

@@ -40,7 +40,11 @@ import {
   Car,
   Sun,
   FileCheck,
-  Globe
+  Globe,
+  Waves,
+  Plane,
+  Layout,
+  Palmtree
 } from "lucide-react";
 
 const BACKEND_URL = "http://localhost:5001";
@@ -54,19 +58,21 @@ const featuredProperties = [];
 const agents = [
   {
     id: 1,
-    name: "Pilar Anguita",
-    title: "Luxury Real Estate Advisor",
-    image_url: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&h=1000&fit=crop",
+    fullName: "Pilar Anguita",
+    title_en: "Luxury Real Estate Advisor",
+    portraitUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&h=1000&fit=crop",
     slug: "pilar-anguita",
-    region: "Kyrenia"
+    regions: "Kyrenia",
+    isActive: true
   },
   {
     id: 2,
-    name: "Metehan Bakirci",
-    title: "Senior Sales Associate",
-    image_url: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=800&h=1000&fit=crop",
-    slug: "metehan-bakirci",
-    region: "Iskele"
+    fullName: "Hakan Okur",
+    title_en: "Senior Sales Associate",
+    portraitUrl: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=800&h=1000&fit=crop",
+    slug: "hakan-okur",
+    regions: "Iskele",
+    isActive: true
   }
 ];
 const blogArticles = [
@@ -553,13 +559,13 @@ const ContactAgentSlider = ({ advisors = [] }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   // Use DB advisors if available, fallback to static agents for legacy
-  const displayAdvisors = (advisors && advisors.length > 0) ? advisors : agents;
+  const displayAdvisors = (advisors && advisors.length > 0) ? advisors.filter(a => a.isActive !== false) : agents.filter(a => a.isActive !== false);
 
   const filters = ['All', 'Kyrenia', 'Esentepe', 'Iskele', 'Famagusta'];
 
   const filteredAgents = activeFilter === 'All'
     ? (displayAdvisors || [])
-    : (displayAdvisors || []).filter(a => a && a.region?.toUpperCase() === activeFilter.toUpperCase());
+    : (displayAdvisors || []).filter(a => (a && (a.regions || a.region)?.toUpperCase().includes(activeFilter.toUpperCase())));
 
   const nextSlide = () => {
     setCurrentIndex((prev) => (prev + 1) % filteredAgents.length);
@@ -618,14 +624,14 @@ const ContactAgentSlider = ({ advisors = [] }) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {(filteredAgents || []).map((agent) => (
             <Link
-              to={`/advisor/${agent.slug || 'pilar-anguita'}`}
+              to={`/advisor/${agent.slug}`}
               key={agent.id}
               className="agent-card relative rounded-lg overflow-hidden aspect-[3/4] group cursor-pointer"
               data-testid={`agent-card-${agent.id}`}
             >
               <img
-                src={agent.image_url || agent.thumbnail || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&h=1000&fit=crop"}
-                alt={agent.name}
+                src={agent.portraitUrl || agent.image_url || agent.thumbnail || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&h=1000&fit=crop"}
+                alt={agent.fullName || agent.name}
                 className="w-full h-full object-cover"
               />
               {/* Overlay */}
@@ -633,8 +639,8 @@ const ContactAgentSlider = ({ advisors = [] }) => {
 
               {/* Agent Info */}
               <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/90 via-black/40 to-transparent translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
-                <p className="text-white font-serif text-xl mb-1">{agent.name}</p>
-                <p className="text-white/70 text-xs tracking-widest uppercase">{agent.title || agent.region}</p>
+                <p className="text-white font-serif text-xl mb-1">{agent.fullName || agent.name}</p>
+                <p className="text-white/70 text-xs tracking-widest uppercase">{agent.title_en || agent.title || agent.regions || agent.region}</p>
               </div>
             </Link>
           ))}
@@ -1383,6 +1389,7 @@ const PropertyDetailPage = () => {
     phone: "",
     message: "I would like to schedule a viewing for this property."
   });
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
 
   useEffect(() => {
     const fetchProperty = async () => {
@@ -1433,7 +1440,50 @@ const PropertyDetailPage = () => {
     );
   }
 
-  const images = property.images || [property.image];
+
+  const images = (() => {
+    try {
+      if (property.gallery) {
+        const parsed = JSON.parse(property.gallery);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // If they are objects with .url, extract them. Otherwise assume they are strings.
+          return parsed.map(item => typeof item === 'object' ? item.url : item);
+        }
+      }
+    } catch (e) { }
+    // Fallback to old image field
+    return property.image ? [property.image] : ["/assets/images/placeholder-teal.png"];
+  })();
+
+  const interiorFeatures = (() => {
+    try {
+      if (property.ozellikler_ic) {
+        const parsed = JSON.parse(property.ozellikler_ic);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) { }
+    return [];
+  })();
+
+  const exteriorFeatures = (() => {
+    try {
+      if (property.ozellikler_dis) {
+        const parsed = JSON.parse(property.ozellikler_dis);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) { }
+    return [];
+  })();
+
+  const locationFeatures = (() => {
+    try {
+      if (property.ozellikler_konum) {
+        const parsed = JSON.parse(property.ozellikler_konum);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) { }
+    return [];
+  })();
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % images.length);
@@ -1507,59 +1557,146 @@ const PropertyDetailPage = () => {
           {/* Property Info Overlay */}
           <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
             <div className="max-w-7xl mx-auto">
-              <p className="text-[#CCEBEA] text-sm tracking-wider uppercase mb-2">
-                {property.location}
+              <p className="text-[#CCEBEA] text-sm md:text-base tracking-[0.2em] uppercase font-medium mb-4 drop-shadow-lg">
+                {property.location || property.region}
               </p>
-              <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl text-white font-light mb-4">
+              <h1 className="font-serif text-4xl md:text-6xl lg:text-8xl text-white font-light mb-8 leading-tight drop-shadow-2xl">
                 {property.title}
               </h1>
-              <p className="text-3xl md:text-4xl font-light text-white">
-                {property.price}
-              </p>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <p className="text-3xl md:text-5xl font-light text-white tracking-tight drop-shadow-xl">
+                  {property.price}
+                </p>
+                <button
+                  onClick={() => setIsGalleryOpen(true)}
+                  className="w-fit flex items-center gap-3 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white px-6 py-3 rounded-full text-sm font-medium transition-all group border border-white/30"
+                >
+                  <Layout size={20} className="group-hover:scale-110 transition-transform" />
+                  View All Images ({images.length})
+                </button>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* FULLSCREEN GALLERY OVERLAY - OPTION B */}
+        {isGalleryOpen && (
+          <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-sm flex flex-col p-4 md:p-10 animate-fade-in">
+            <button
+              onClick={() => setIsGalleryOpen(false)}
+              className="absolute top-6 right-6 text-white hover:bg-white/10 p-3 rounded-full transition-all z-[100]"
+            >
+              <X size={32} />
+            </button>
+
+            <div className="flex-1 flex flex-col items-center justify-center max-w-7xl mx-auto w-full relative">
+              {/* Large Display */}
+              <div className="relative w-full h-[60vh] md:h-[70vh] flex items-center justify-center">
+                <img
+                  src={images[currentImageIndex]}
+                  alt=""
+                  className="max-w-full max-h-full object-contain shadow-2xl rounded-sm"
+                />
+
+                {/* Overlay Controls for Desktop */}
+                <button
+                  onClick={prevImage}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 p-4 text-white/50 hover:text-white transition-colors"
+                >
+                  <ChevronLeft size={48} />
+                </button>
+                <button
+                  onClick={nextImage}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 p-4 text-white/50 hover:text-white transition-colors"
+                >
+                  <ChevronRight size={48} />
+                </button>
+              </div>
+
+              {/* Thumbnail Grid / Strip */}
+              <div className="mt-8 w-full max-w-5xl">
+                <div className="flex gap-3 overflow-x-auto pb-4 px-2 scrollbar-none snap-x mask-fade-edges">
+                  {images.map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setCurrentImageIndex(idx)}
+                      className={`relative flex-shrink-0 w-24 md:w-32 aspect-video rounded-lg overflow-hidden transition-all snap-center ${currentImageIndex === idx ? 'ring-2 ring-brand-teal scale-105' : 'opacity-40 hover:opacity-100'
+                        }`}
+                    >
+                      <img src={img} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
-      {/* QUICK INFO BAR */}
+      {/* QUICK INFO BAR - REFINED BEIGE STRIP */}
       <section className="bg-[#F2EDE8] border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
-            <div className="flex items-center gap-3">
-              <Bed size={24} className="text-[#0F5E63]" />
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider">Bedrooms</p>
-                <p className="text-lg font-medium text-caria-slate">{property.beds}</p>
+        <div className="max-w-7xl mx-auto px-6 py-10">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-y-10 gap-x-6">
+            {/* Location */}
+            <div className="flex items-center gap-4">
+              <MapPin size={24} className="text-[#0F5E63] shrink-0" />
+              <div className="flex flex-col">
+                <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-1 font-bold">Location</span>
+                <span className="text-sm md:text-base font-semibold text-caria-slate uppercase tracking-wider">{property.location}</span>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Bath size={24} className="text-[#0F5E63]" />
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider">Bathrooms</p>
-                <p className="text-lg font-medium text-caria-slate">{property.baths}</p>
+
+            {/* Bedrooms */}
+            <div className="flex items-center gap-4">
+              <Bed size={24} className="text-[#0F5E63] shrink-0" />
+              <div className="flex flex-col">
+                <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-1 font-bold">Bedrooms</span>
+                <span className="text-sm md:text-base font-semibold text-caria-slate uppercase tracking-wider">{property.beds_room_count || property.beds}</span>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Square size={24} className="text-[#0F5E63]" />
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider">Built Size</p>
-                <p className="text-lg font-medium text-caria-slate">{property.area} m²</p>
+
+            {/* Bathrooms */}
+            <div className="flex items-center gap-4">
+              <Bath size={24} className="text-[#0F5E63] shrink-0" />
+              <div className="flex flex-col">
+                <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-1 font-bold">Bathrooms</span>
+                <span className="text-sm md:text-base font-semibold text-caria-slate uppercase tracking-wider">{property.baths_count || property.baths}</span>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Maximize2 size={24} className="text-[#0F5E63]" />
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider">Plot Size</p>
-                <p className="text-lg font-medium text-caria-slate">{property.plotSize || property.area} m²</p>
+
+            {/* Balcony */}
+            {property.balcony && property.balcony !== "Yok" && (
+              <div className="flex items-center gap-4">
+                <Palmtree size={24} className="text-[#0F5E63] shrink-0" />
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-1 font-bold">Balcony</span>
+                  <span className="text-sm md:text-base font-semibold text-caria-slate uppercase tracking-wider">{property.balcony}</span>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <HomeIcon size={24} className="text-[#0F5E63]" />
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider">Reference</p>
-                <p className="text-lg font-medium text-caria-slate">{property.reference || `CE-${property.id}`}</p>
+            )}
+
+            {/* Sea */}
+            {property.distance_sea && (
+              <div className="flex items-center gap-4">
+                <Waves size={24} className="text-[#0F5E63] shrink-0" />
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-1 font-bold">Sea</span>
+                  <span className="text-sm md:text-base font-semibold text-caria-slate uppercase tracking-wider">{property.distance_sea}</span>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Airport */}
+            {property.distance_airport && (
+              <div className="flex items-center gap-4">
+                <Plane size={24} className="text-[#0F5E63] shrink-0" />
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-1 font-bold">Airport</span>
+                  <span className="text-sm md:text-base font-semibold text-caria-slate uppercase tracking-wider">{property.distance_airport}</span>
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
       </section>
@@ -1584,18 +1721,59 @@ const PropertyDetailPage = () => {
                 </div>
               </div>
 
-              {/* Features */}
-              {property.features && (
-                <div>
-                  <h2 className="font-serif text-3xl text-caria-slate mb-6">Features</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {property.features.map((feature, idx) => (
-                      <div key={idx} className="flex items-center gap-3">
-                        <Check size={20} className="text-[#0F5E63] flex-shrink-0" />
-                        <span className="text-gray-600">{feature}</span>
+              {/* Features Section */}
+              {(interiorFeatures.length > 0 || exteriorFeatures.length > 0) && (
+                <div className="space-y-12">
+                  {interiorFeatures.length > 0 && (
+                    <div className="bg-gray-50/50 p-8 rounded-2xl border border-gray-100">
+                      <h2 className="font-serif text-3xl text-caria-slate mb-8 flex items-center gap-4">
+                        <div className="w-10 h-1 bg-[#0F5E63]" />
+                        Interior Features
+                      </h2>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6">
+                        {interiorFeatures.map((feature, idx) => (
+                          <div key={idx} className="flex items-center gap-3 group">
+                            <Check size={18} className="text-[#0F5E63] group-hover:scale-110 transition-transform" />
+                            <span className="text-gray-700 font-medium">{feature}</span>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  )}
+
+                  {exteriorFeatures.length > 0 && (
+                    <div className="bg-[#F2EDE8]/30 p-8 rounded-2xl border border-[#F2EDE8]">
+                      <h2 className="font-serif text-3xl text-caria-slate mb-8 flex items-center gap-4">
+                        <div className="w-10 h-1 bg-[#0F5E63]" />
+                        Exterior Features
+                      </h2>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6">
+                        {exteriorFeatures.map((feature, idx) => (
+                          <div key={idx} className="flex items-center gap-3 group">
+                            <Check size={18} className="text-[#0F5E63] group-hover:scale-110 transition-transform" />
+                            <span className="text-gray-700 font-medium">{feature}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {locationFeatures.length > 0 && (
+                    <div className="bg-caria-mint/10 p-8 rounded-2xl border border-caria-mint/20">
+                      <h2 className="font-serif text-3xl text-caria-slate mb-8 flex items-center gap-4">
+                        <div className="w-10 h-1 bg-[#0F5E63]" />
+                        Location & Environment
+                      </h2>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6">
+                        {locationFeatures.map((feature, idx) => (
+                          <div key={idx} className="flex items-center gap-3 group">
+                            <MapPin size={18} className="text-[#0F5E63] group-hover:scale-110 transition-transform" />
+                            <span className="text-gray-700 font-medium">{feature}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1686,25 +1864,27 @@ const PropertyDetailPage = () => {
                 <h3 className="font-medium text-caria-slate mb-4">Your Assigned Agent</h3>
                 <div className="flex items-center gap-4 mb-4">
                   <img
-                    src="/hakan-okur.png"
-                    alt="Hakan Okur"
+                    src={property.advisor?.portraitUrl || "/hakan-okur.png"}
+                    alt={property.advisor?.fullName || "Hakan Okur"}
                     className="w-16 h-16 rounded-full object-cover shadow-sm"
                   />
                   <div>
-                    <p className="font-medium text-caria-slate">Hakan Okur</p>
-                    <p className="text-sm text-gray-500">Property Advisor</p>
+                    <Link to={`/advisor/${property.advisor?.slug}`} className="font-medium text-caria-slate hover:text-caria-turquoise transition-colors">
+                      {property.advisor?.fullName || "Hakan Okur"}
+                    </Link>
+                    <p className="text-sm text-gray-500">{property.advisor?.title_en || "Property Advisor"}</p>
                   </div>
                 </div>
                 <div className="space-y-3">
                   <a
-                    href="tel:+905481234567"
+                    href={`tel:${property.advisor?.phone || "+905481234567"}`}
                     className="flex items-center gap-3 text-gray-600 hover:text-[#0F5E63] transition-colors"
                   >
                     <Phone size={18} />
-                    <span className="text-sm">+90 548 123 4567</span>
+                    <span className="text-sm">{property.advisor?.phone || "+90 548 123 4567"}</span>
                   </a>
                   <a
-                    href="https://wa.me/905481234567"
+                    href={`https://wa.me/${(property.advisor?.whatsappPhone || property.advisor?.phone || "905481234567").replace(/[^0-9]/g, '')}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-3 px-4 py-2 bg-[#25D366] text-white rounded-sm hover:bg-[#20bd5a] transition-all justify-center"
@@ -1729,22 +1909,24 @@ const PropertyDetailPage = () => {
       </section>
 
       {/* RELATED PROPERTIES */}
-      {relatedProperties.length > 0 && (
-        <section className="bg-[#CCEBEA] py-16 md:py-20">
-          <div className="max-w-7xl mx-auto px-6">
-            <h2 className="font-serif text-3xl md:text-4xl text-caria-slate mb-10">You may also like</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {relatedProperties.map((prop) => (
-                <PropertyCard key={prop.id} property={prop} />
-              ))}
+      {
+        relatedProperties.length > 0 && (
+          <section className="bg-[#CCEBEA] py-16 md:py-20">
+            <div className="max-w-7xl mx-auto px-6">
+              <h2 className="font-serif text-3xl md:text-4xl text-caria-slate mb-10">You may also like</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {relatedProperties.map((prop) => (
+                  <PropertyCard key={prop.id} property={prop} />
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
-      )}
+          </section>
+        )
+      }
 
       <Footer />
       <CopyrightBar />
-    </div>
+    </div >
   );
 };
 
@@ -4224,6 +4406,7 @@ const AdvisorProfile = () => {
   const [advisor, setAdvisor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeRegion, setActiveRegion] = useState("DISCOVER ALL");
+  const [lang, setLang] = useState("EN"); // Internal toggle for bio
 
   useEffect(() => {
     const fetchAdvisor = async () => {
@@ -4236,111 +4419,209 @@ const AdvisorProfile = () => {
         setLoading(false);
       }
     };
+    window.scrollTo(0, 0);
     fetchAdvisor();
   }, [slug]);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center font-light tracking-widest text-gray-400">LOADING...</div>;
-  if (!advisor) return <div className="min-h-screen flex items-center justify-center font-light tracking-widest text-gray-400">ADVISOR NOT FOUND</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center font-light tracking-[0.5em] text-gray-400 animate-pulse uppercase">Refining Profile...</div>;
+  if (!advisor) return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 text-center px-10">
+      <h2 className="font-serif text-4xl text-caria-slate mb-4">Profile Unavailable</h2>
+      <p className="text-gray-500 max-w-md mx-auto mb-8 font-light">This advisor profile may be temporarily inactive or moved. Please contact us for direct assistance.</p>
+      <Link to="/properties" className="px-8 py-3 bg-caria-slate text-white text-xs tracking-widest uppercase hover:bg-black transition-all">Explore Properties</Link>
+    </div>
+  );
 
-  // Filter listings by active region
   const listings = advisor.listings || [];
   const filteredListings = activeRegion === "DISCOVER ALL"
     ? listings
     : listings.filter(prop => prop.region?.toUpperCase() === activeRegion.toUpperCase());
 
-  // Get unique regions from listings for filtering
   const filterRegions = ["DISCOVER ALL", ...new Set(listings.map(p => p.region?.toUpperCase()).filter(Boolean))];
 
+  // Biography logic
+  const bio = lang === "TR" ? (advisor.bioRichTextTR || advisor.bioRichTextEN) : (advisor.bioRichTextEN || advisor.bioRichTextTR);
+  const title = lang === "TR" ? (advisor.title_tr || advisor.title_en) : (advisor.title_en || advisor.title_tr);
+
   return (
-    <div className="min-h-screen bg-white">
-      {/* Profile Header / Navigation Space */}
-      <div className="h-20 lg:h-32 bg-caria-slate"></div>
+    <div className="min-h-screen bg-white" data-testid="advisor-profile">
+      {/* Hero Section */}
+      <section className="relative h-[60vh] lg:h-[75vh] w-full overflow-hidden">
+        {/* Background Cover */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src={advisor.coverImageUrl || "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=1920&h=1080&fit=crop"}
+            alt="Hero Background"
+            className="w-full h-full object-cover scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-white z-10" />
+        </div>
 
-      <section className="pt-20 pb-16 md:pt-32 md:pb-24">
+        {/* Hero Content */}
+        <div className="relative z-20 h-full max-w-[1400px] mx-auto px-8 lg:px-12 flex flex-col justify-end pb-12 lg:pb-32">
+          <div className="flex flex-col lg:flex-row lg:items-end gap-8 lg:gap-16">
+            {/* Portrait within Hero */}
+            <div className="w-48 h-48 lg:w-72 lg:h-72 shrink-0 rounded-full border-4 border-white shadow-2xl overflow-hidden bg-gray-200">
+              <img
+                src={advisor.portraitUrl || "https://via.placeholder.com/500?text=Advisor"}
+                alt={advisor.fullName}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="text-white drop-shadow-lg">
+              <h1 className="font-serif text-5xl lg:text-7xl xl:text-8xl font-light mb-4 tracking-tight">
+                {advisor.fullName}
+              </h1>
+              <p className="text-sm lg:text-lg tracking-[0.4em] uppercase font-light text-white/90">
+                {title}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Main Content */}
+      <section className="py-20 lg:py-32">
         <div className="max-w-[1400px] mx-auto px-8 lg:px-12">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-24 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-20">
 
-            {/* Left: Large Portrait (Sticky) */}
-            <div className="lg:col-span-12 xl:col-span-4 lg:sticky lg:top-32">
-              <div className="aspect-[3/4] overflow-hidden rounded-sm shadow-2xl bg-gray-100 group relative">
-                <img
-                  src={advisor.image_url || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&h=1000&fit=crop"}
-                  alt={advisor.name}
-                  className="w-full h-full object-cover grayscale-[20%] group-hover:grayscale-0 transition-all duration-700"
-                />
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-6 lg:hidden">
-                  <h1 className="text-white text-3xl font-serif">{advisor.name}</h1>
-                  <p className="text-white/80 text-xs tracking-widest uppercase mt-1">{advisor.title}</p>
+            {/* Left: Bio & Details */}
+            <div className="lg:col-span-8">
+              {/* Language Switch for Bio */}
+              <div className="flex gap-4 mb-10 pb-4 border-b border-gray-100">
+                <button onClick={() => setLang("EN")} className={`text-xs tracking-widest uppercase transition-all ${lang === "EN" ? 'text-caria-turquoise font-black' : 'text-gray-300'}`}>English</button>
+                <button onClick={() => setLang("TR")} className={`text-xs tracking-widest uppercase transition-all ${lang === "TR" ? 'text-caria-turquoise font-black' : 'text-gray-300'}`}>Türkçe</button>
+              </div>
+
+              <div className="prose prose-lg max-w-none text-gray-500 font-light leading-relaxed mb-20 cms-content">
+                {bio ? (
+                  <div dangerouslySetInnerHTML={{ __html: bio }} />
+                ) : (
+                  <p className="italic text-gray-400">Biography not available in this language.</p>
+                )}
+              </div>
+
+              {/* Specialties & Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-12 py-16 border-y border-gray-100 mb-20">
+                <div>
+                  <span className="block text-[10px] tracking-[0.3em] uppercase text-gray-400 mb-4">Areas of Expertise</span>
+                  <div className="flex flex-wrap gap-2">
+                    {(advisor.specialties || "Residential, Commercial").split(',').map(s => (
+                      <span key={s} className="px-3 py-1 bg-gray-50 text-[10px] uppercase font-bold text-caria-slate tracking-wider rounded-full">{s.trim()}</span>
+                    ))}
+                  </div>
                 </div>
+                <div>
+                  <span className="block text-[10px] tracking-[0.3em] uppercase text-gray-400 mb-4">Regions</span>
+                  <p className="text-sm text-caria-slate font-medium tracking-wide">{advisor.regions || "Whole Island"}</p>
+                </div>
+                <div>
+                  <span className="block text-[10px] tracking-[0.3em] uppercase text-gray-400 mb-4">Languages Spoken</span>
+                  <p className="text-sm text-caria-slate font-medium tracking-wide">{advisor.languages || "English"}</p>
+                </div>
+              </div>
+
+              {/* Advisor Portfolio */}
+              <div id="portfolio">
+                <div className="flex items-center justify-between mb-12">
+                  <h2 className="font-serif text-3xl text-caria-slate">Property Portfolio</h2>
+                  <div className="h-px flex-1 bg-gray-100 mx-10 hidden md:block" />
+                  <p className="text-xs tracking-widest text-gray-400 uppercase">{listings.length} Properties</p>
+                </div>
+
+                {/* Filter Tabs Scoped to Advisor */}
+                <div className="flex flex-wrap gap-8 mb-16 border-b border-gray-100 overflow-x-auto whitespace-nowrap scrollbar-hide">
+                  {filterRegions.map(region => (
+                    <button
+                      key={region}
+                      onClick={() => setActiveRegion(region)}
+                      className={`pb-4 text-[11px] tracking-[0.2em] uppercase transition-all relative ${activeRegion === region
+                        ? 'text-caria-slate font-black'
+                        : 'text-gray-400 hover:text-gray-600'
+                        }`}
+                    >
+                      {region}
+                      {activeRegion === region && (
+                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-caria-turquoise"></div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                  {filteredListings.map(property => (
+                    <PropertyCard key={property.id} property={property} />
+                  ))}
+                </div>
+
+                {filteredListings.length === 0 && (
+                  <div className="py-40 text-center bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                    <p className="text-gray-400 font-light italic tracking-[0.2em] text-sm">NO MATCHING PROPERTIES IN THIS REGION</p>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Right: Info & Bio & Scoped Listings */}
-            <div className="lg:col-span-12 xl:col-span-8">
-              <div className="max-w-3xl">
-                <h1 className="hidden lg:block text-5xl xl:text-7xl font-serif text-caria-slate mb-4 leading-tight">
-                  {advisor.name}
-                </h1>
-                <p className="hidden lg:block text-sm tracking-[0.4em] uppercase text-caria-turquoise font-medium mb-12">
-                  {advisor.title}
-                </p>
+            {/* Right: Contact Card (Sticky) */}
+            <div className="lg:col-span-4 lg:sticky lg:top-32 h-fit">
+              <div className="bg-caria-slate p-10 lg:p-12 text-white rounded-sm shadow-2xl">
+                <span className="block text-[10px] tracking-[0.5em] uppercase text-caria-turquoise mb-8 font-black">Contact Expert</span>
 
-                {/* Bio Section */}
-                <div className="prose prose-lg max-w-none text-gray-500 font-light leading-relaxed mb-16">
-                  {advisor.bio_html ? (
-                    <div dangerouslySetInnerHTML={{ __html: advisor.bio_html }} />
-                  ) : (
-                    <p>Experienced real estate advisor specializing in luxury properties across Northern Cyprus. Committed to providing exceptional service and finding the perfect home for every client.</p>
+                <div className="space-y-8 mb-12">
+                  <div className="group">
+                    <span className="block text-[9px] tracking-[0.3em] uppercase text-white/40 mb-2">Direct Line</span>
+                    <a href={`tel:${advisor.phone}`} className="text-2xl font-light hover:text-caria-turquoise transition-colors">{advisor.phone}</a>
+                  </div>
+
+                  <div className="group">
+                    <span className="block text-[9px] tracking-[0.3em] uppercase text-white/40 mb-2">Send Mail</span>
+                    <a href={`mailto:${advisor.email}`} className="text-xl font-light underline decoration-caria-turquoise/40 underline-offset-8 hover:text-caria-turquoise transition-all">{advisor.email}</a>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-4">
+                  <a
+                    href={`https://wa.me/${(advisor.whatsappPhone || advisor.phone).replace(/[^0-9]/g, '')}`}
+                    target="_blank" rel="noreferrer"
+                    className="flex items-center justify-center gap-3 w-full py-5 bg-caria-turquoise text-white text-xs tracking-[0.3em] uppercase font-black hover:bg-white hover:text-caria-slate transition-all shadow-lg"
+                  >
+                    <MessageSquare size={16} /> WhatsApp Inquiry
+                  </a>
+                  <a
+                    href={`tel:${advisor.phone}`}
+                    className="flex items-center justify-center gap-3 w-full py-5 border border-white/20 text-white text-xs tracking-[0.3em] uppercase font-bold hover:bg-white/10 transition-all"
+                  >
+                    <Phone size={16} /> Instant Call
+                  </a>
+                </div>
+
+                {/* Social Links */}
+                <div className="mt-12 pt-10 border-t border-white/10 flex justify-center gap-6">
+                  {advisor.socialLinks && typeof advisor.socialLinks === 'string' && JSON.parse(advisor.socialLinks).instagram && (
+                    <a href={JSON.parse(advisor.socialLinks).instagram} target="_blank" rel="noreferrer" className="text-white/40 hover:text-caria-turquoise transition-colors">
+                      <Instagram size={20} />
+                    </a>
+                  )}
+                  {advisor.socialLinks && typeof advisor.socialLinks === 'string' && JSON.parse(advisor.socialLinks).linkedin && (
+                    <a href={JSON.parse(advisor.socialLinks).linkedin} target="_blank" rel="noreferrer" className="text-white/40 hover:text-caria-turquoise transition-colors">
+                      <Linkedin size={20} />
+                    </a>
+                  )}
+                  {advisor.socialLinks && typeof advisor.socialLinks === 'string' && JSON.parse(advisor.socialLinks).facebook && (
+                    <a href={JSON.parse(advisor.socialLinks).facebook} target="_blank" rel="noreferrer" className="text-white/40 hover:text-caria-turquoise transition-colors">
+                      <Facebook size={20} />
+                    </a>
                   )}
                 </div>
+              </div>
 
-                {/* Contact Info (Minimal) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-12 border-y border-gray-100 mb-20">
-                  <div className="flex flex-col gap-2">
-                    <span className="text-[10px] tracking-[0.3em] uppercase text-gray-400">Direct Inquiries</span>
-                    <a href={`mailto:${advisor.email}`} className="text-lg font-light hover:text-caria-turquoise transition-colors">{advisor.email}</a>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <span className="text-[10px] tracking-[0.3em] uppercase text-gray-400">Mobile</span>
-                    <a href={`tel:${advisor.phone}`} className="text-lg font-light hover:text-caria-turquoise transition-colors">{advisor.phone}</a>
-                  </div>
+              {/* Active Listings Counter Badge */}
+              <div className="mt-8 bg-caria-mint p-8 flex items-center justify-between group cursor-pointer" onClick={() => document.getElementById('portfolio').scrollIntoView({ behavior: 'smooth' })}>
+                <div>
+                  <p className="text-2xl font-serif text-caria-slate">{listings.length}</p>
+                  <p className="text-[10px] tracking-widest text-caria-slate/60 uppercase">Active Listings</p>
                 </div>
-
-                {/* Scoped Listing Filter */}
-                <div className="listing-section">
-                  <h4 className="text-[10px] tracking-[0.4em] uppercase text-gray-400 mb-8 font-semibold">Active Listings</h4>
-
-                  <div className="flex flex-wrap gap-8 mb-12 border-b border-gray-100 overflow-x-auto whitespace-nowrap scrollbar-hide">
-                    {filterRegions.map(region => (
-                      <button
-                        key={region}
-                        onClick={() => setActiveRegion(region)}
-                        className={`pb-4 text-[11px] tracking-[0.2em] uppercase transition-all relative ${activeRegion === region
-                          ? 'text-caria-slate font-bold'
-                          : 'text-gray-400 hover:text-gray-600'
-                          }`}
-                      >
-                        {region}
-                        {activeRegion === region && (
-                          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-caria-turquoise"></div>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Dynamic Scoped Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                    {filteredListings.map(property => (
-                      <PropertyCard key={property.id} property={property} />
-                    ))}
-                  </div>
-
-                  {filteredListings.length === 0 && (
-                    <div className="py-32 text-center border border-dashed border-gray-200 rounded-lg">
-                      <p className="text-gray-300 font-light italic tracking-widest text-sm">NO ACTIVE LISTINGS IN THIS REGION</p>
-                    </div>
-                  )}
-                </div>
+                <ChevronRight size={24} className="text-caria-slate group-hover:translate-x-2 transition-transform" />
               </div>
             </div>
 
