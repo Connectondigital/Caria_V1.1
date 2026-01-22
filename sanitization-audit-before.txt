@@ -1,0 +1,41 @@
+admin-horizon/src/components/sidebar/componentsrtl/SidebarCard.jsx:          Improve your development process and start doing more with Horizon UI
+admin-horizon/src/components/sidebar/componentsrtl/SidebarCard.jsx:          href="https://horizon-ui.com/pro?ref=live-free-tailwind-react"
+admin-horizon/src/components/sidebar/RTL.jsx:          Horizon <span class="font-medium">FREE</span>
+admin-horizon/src/components/sidebar/RTL.jsx:      {/* Free Horizon Card */}
+admin-horizon/src/components/navbar/RTL.jsx:                    New Update: Horizon UI Dashboard PRO
+admin-horizon/src/components/navbar/RTL.jsx:                    New Update: Horizon UI Dashboard PRO
+admin-horizon/src/components/navbar/RTL.jsx:        {/* start Horizon PRO */}
+admin-horizon/src/components/navbar/RTL.jsx:                href="https://horizon-ui.com/pro?ref=live-free-tailwind-react"
+admin-horizon/src/components/navbar/RTL.jsx:                Buy Horizon UI PRO
+admin-horizon/src/components/navbar/RTL.jsx:                href="https://horizon-ui.com/docs-tailwind/docs/react/installation?ref=live-free-tailwind-react"
+admin-horizon/src/components/navbar/RTL.jsx:                href="https://horizon-ui.com/?ref=live-free-tailwind-react"
+admin-horizon/src/components/navbar/RTL.jsx:                Try Horizon Free
+admin-horizon/src/components/navbar/index.jsx:        {/* start Horizon PRO */}
+admin-horizon/src/components/footer/FooterAuthDefault.jsx:        ©{1900 + new Date().getYear()} Horizon UI. All Rights Reserved.
+admin-horizon/src/components/footer/FooterAuthDefault.jsx:            href="https://blog.horizon-ui.com/"
+admin-horizon/src/components/tooltip/index.jsx:const TooltipHorizon = (props) => {
+admin-horizon/src/components/tooltip/index.jsx:export default TooltipHorizon;
+admin-horizon/src/components/popover/index.jsx:const PopoverHorizon = (props) => {
+admin-horizon/src/components/popover/index.jsx:export default PopoverHorizon;
+admin-horizon/src/layouts/rtl/index.jsx:              logoText={"Horizon UI Tailwind React"}
+admin-horizon/src/views/admin/marketplace/variables/tableDataTopCreators.json:    "name": ["@horizon.ui", "https://i.ibb.co/NSJYQYD/Horizon-UI-Avatar.png"],
+admin-horizon/public/index.html:* Horizon UI Tailwind React - v1.0.0
+admin-horizon/public/index.html:* Product Page: https://www.horizon-ui.com/
+admin-horizon/public/index.html:* Copyright 2023 Horizon UI (https://www.horizon-ui.com/)
+admin-horizon/public/index.html:    <title>Horizon UI - Tailwind React</title>
+frontend/src/App.css:/* Scroll snap for horizontal sliders */
+frontend/src/components/ui/breadcrumb.jsx:import { ChevronRight, MoreHorizontal } from "lucide-react"
+frontend/src/components/ui/breadcrumb.jsx:    <MoreHorizontal className="h-4 w-4" />
+frontend/src/components/ui/carousel.jsx:    orientation = "horizontal",
+frontend/src/components/ui/carousel.jsx:    axis: orientation === "horizontal" ? "x" : "y",
+frontend/src/components/ui/carousel.jsx:          orientation || (opts?.axis === "y" ? "vertical" : "horizontal"),
+frontend/src/components/ui/carousel.jsx:          orientation === "horizontal" ? "-ml-4" : "-mt-4 flex-col",
+frontend/src/components/ui/carousel.jsx:        orientation === "horizontal" ? "pl-4" : "pt-4",
+frontend/src/components/ui/carousel.jsx:      className={cn("absolute  h-8 w-8 rounded-full", orientation === "horizontal"
+frontend/src/components/ui/carousel.jsx:      className={cn("absolute h-8 w-8 rounded-full", orientation === "horizontal"
+frontend/src/components/ui/separator.jsx:  { className, orientation = "horizontal", decorative = true, ...props },
+frontend/src/components/ui/separator.jsx:      orientation === "horizontal" ? "h-[1px] w-full" : "h-full w-[1px]",
+frontend/src/components/ui/pagination.jsx:import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react"
+frontend/src/components/ui/pagination.jsx:    <MoreHorizontal className="h-4 w-4" />
+frontend/src/components/ui/scroll-area.jsx:      orientation === "horizontal" &&
+admin-horizon/package.json:  "name": "horizon-ui-tailwind-react",

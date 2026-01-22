@@ -1,0 +1,23 @@
+admin-horizon/src/components/sidebar/RTL.jsx:          Horizon <span class="font-medium">FREE</span>
+admin-horizon/src/components/sidebar/RTL.jsx:      {/* Free Horizon Card */}
+admin-horizon/src/components/navbar/RTL.jsx:                    New Update: Horizon UI Dashboard PRO
+admin-horizon/src/components/navbar/RTL.jsx:                    New Update: Horizon UI Dashboard PRO
+admin-horizon/src/components/navbar/RTL.jsx:        {/* start Horizon PRO */}
+admin-horizon/src/components/navbar/RTL.jsx:                href="https://horizon-ui.com/pro?ref=live-free-tailwind-react"
+admin-horizon/src/components/navbar/RTL.jsx:                Buy Horizon UI PRO
+admin-horizon/src/components/navbar/RTL.jsx:                href="https://horizon-ui.com/docs-tailwind/docs/react/installation?ref=live-free-tailwind-react"
+admin-horizon/src/components/navbar/RTL.jsx:                href="https://horizon-ui.com/?ref=live-free-tailwind-react"
+admin-horizon/src/components/navbar/RTL.jsx:                Try Horizon Free
+admin-horizon/src/components/navbar/index.jsx:        {/* start Horizon PRO */}
+admin-horizon/src/components/tooltip/index.jsx:const TooltipHorizon = (props) => {
+admin-horizon/src/components/tooltip/index.jsx:export default TooltipHorizon;
+admin-horizon/src/components/popover/index.jsx:const PopoverHorizon = (props) => {
+admin-horizon/src/components/popover/index.jsx:export default PopoverHorizon;
+admin-horizon/src/views/admin/marketplace/variables/tableDataTopCreators.json:    "name": ["@horizon.ui", "https://i.ibb.co/NSJYQYD/Horizon-UI-Avatar.png"],
+admin-horizon/public/index.html:* Horizon UI Tailwind React - v1.0.0
+admin-horizon/public/index.html:* Product Page: https://www.horizon-ui.com/
+admin-horizon/public/index.html:* Copyright 2023 Horizon UI (https://www.horizon-ui.com/)
+frontend/src/App.css:/* Scroll snap for horizontal sliders */
+frontend/src/components/ui/carousel.jsx:    orientation = "horizontal",
+frontend/src/components/ui/carousel.jsx:          orientation || (opts?.axis === "y" ? "vertical" : "horizontal"),
+frontend/src/components/ui/separator.jsx:  { className, orientation = "horizontal", decorative = true, ...props },

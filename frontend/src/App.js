@@ -47,8 +47,8 @@ import {
   Palmtree
 } from "lucide-react";
 
-const BACKEND_URL = "http://localhost:5001";
-const API = `${BACKEND_URL}/api`;
+const BACKEND_URL = "";
+const API = "/api";
 
 // ============================================
 // DYNAMIC DATA FALLBACKS (Empty by default)

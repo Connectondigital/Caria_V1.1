@@ -1,0 +1,5 @@
+admin-horizon/src/views/admin/marketplace/variables/tableDataTopCreators.json:      "https://i.ibb.co/NSJYQYD/Horizon-UI-Avatar.png"
+admin-horizon/src/views/admin/profile/components/General.jsx:            Simmmple Web LLC
+frontend/src/components/ui/carousel.jsx:    orientation = "horizontal",
+frontend/src/components/ui/carousel.jsx:          orientation || (opts?.axis === "y" ? "vertical" : "horizontal"),
+frontend/src/components/ui/separator.jsx:  { className, orientation = "horizontal", decorative = true, ...props },
