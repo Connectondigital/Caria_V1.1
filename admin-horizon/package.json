@@ -2,6 +2,7 @@
   "name": "caria-estates-crm",
   "version": "1.1.0",
   "private": true,
+  "homepage": "/admin",
   "proxy": "http://localhost:5001",
   "dependencies": {
     "@chakra-ui/hooks": "^2.1.4",
