@@ -78,8 +78,8 @@ const Navbar = (props) => {
                 <p className="text-base font-bold text-navy-700 dark:text-white">
                   Notification
                 </p>
-                <p className="text-sm font-bold text-navy-700 dark:text-white">
-                  Mark all read
+                <p className="font-bold text-navy-700 dark:text-white">
+                  Caria Estates CRM v1.1
                 </p>
               </div>
 
@@ -90,7 +90,7 @@ const Navbar = (props) => {
           }
           classNames={"py-2 top-4 -left-[230px] md:-left-[440px] w-max"}
         />
-        {/* start Horizon PRO */}
+        {/* start Information */}
         <Dropdown
           button={
             <p className="cursor-pointer">
@@ -107,7 +107,7 @@ const Navbar = (props) => {
                 }}
                 className="mb-2 aspect-video w-full rounded-lg"
               />
-              <p className="text-sm font-bold text-navy-700 dark:text-white px-2">Caria Estates CMS v1.0</p>
+              <p className="text-sm font-bold text-navy-700 dark:text-white px-2">Caria Estates CRM v1.1</p>
               <p className="text-xs text-gray-500 px-2">Bu panel gayrimenkul ve içerik yönetimi için özelleştirilmiştir.</p>
             </div>
           }
@@ -138,7 +138,7 @@ const Navbar = (props) => {
             <img
               className="h-10 w-10 rounded-full"
               src={avatar}
-              alt="Elon Musk"
+              alt="Admin Avatar"
             />
           }
           children={

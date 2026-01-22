@@ -1,6 +1,6 @@
 {
-  "name": "horizon-ui-tailwind-react",
-  "version": "2.0.0",
+  "name": "caria-estates-crm",
+  "version": "1.1.0",
   "private": true,
   "proxy": "http://localhost:5001",
   "dependencies": {
@@ -35,8 +35,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "pretty": "prettier --write \"./**/*.{js,jsx,json}\""
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [
@@ -54,8 +53,7 @@
   "browserslist": {
     "production": [
       ">0.2%",
-      "not dead",
-      "not op_mini all"
+      "not dead"
     ],
     "development": [
       "last 1 chrome version",

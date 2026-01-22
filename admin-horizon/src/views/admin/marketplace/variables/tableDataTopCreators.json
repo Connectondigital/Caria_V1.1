@@ -32,12 +32,18 @@
     "rating": 30
   },
   {
-    "name": ["@simmmple.web", "https://i.ibb.co/7p0d1Cd/Frame-24.png"],
+    "name": [
+      "@caria.estates",
+      "https://i.ibb.co/7p0d1Cd/Frame-24.png"
+    ],
     "artworks": "3871",
     "rating": 30
   },
   {
-    "name": ["@horizon.ui", "https://i.ibb.co/NSJYQYD/Horizon-UI-Avatar.png"],
+    "name": [
+      "@caria.crm",
+      "https://i.ibb.co/NSJYQYD/caria-crm-avatar.png"
+    ],
     "artworks": "3152",
     "rating": 30
   },

@@ -14,7 +14,7 @@ import sqlite3
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-app = FastAPI()
+app = FastAPI(title="Caria Estates API", version="1.1.0")
 
 # Configure CORS (Robust for Local Development)
 app.add_middleware(

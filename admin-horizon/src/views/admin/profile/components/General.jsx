@@ -10,11 +10,9 @@ const General = () => {
           General Information
         </h4>
         <p className="mt-2 px-2 text-base text-gray-600">
-          As we live, our hearts turn colder. Cause pain is what we go through
-          as we become older. We get insulted by others, lose trust for those
-          others. We get back stabbed by friends. It becomes harder for us to
-          give others a hand. We get our heart broken by people we love, even
-          that we give them all...
+          Caria Estates provides premium real estate services in Northern Cyprus.
+          This panel allows you to manage property listings, advisor profiles,
+          and website content efficiently.
         </p>
       </div>
       {/* Cards */}
@@ -22,35 +20,35 @@ const General = () => {
         <div className="flex flex-col items-start justify-center rounded-2xl bg-white bg-clip-border px-3 py-4 shadow-3xl shadow-shadow-500 dark:!bg-navy-700 dark:shadow-none">
           <p className="text-sm text-gray-600">Education</p>
           <p className="text-base font-medium text-navy-700 dark:text-white">
-            Stanford University
+            Real Estate Management
           </p>
         </div>
 
         <div className="flex flex-col justify-center rounded-2xl bg-white bg-clip-border px-3 py-4 shadow-3xl shadow-shadow-500 dark:!bg-navy-700 dark:shadow-none">
           <p className="text-sm text-gray-600">Languages</p>
           <p className="text-base font-medium text-navy-700 dark:text-white">
-            English, Spanish, Italian
+            English, Turkish, Russian
           </p>
         </div>
 
         <div className="flex flex-col items-start justify-center rounded-2xl bg-white bg-clip-border px-3 py-4 shadow-3xl shadow-shadow-500 dark:!bg-navy-700 dark:shadow-none">
           <p className="text-sm text-gray-600">Department</p>
           <p className="text-base font-medium text-navy-700 dark:text-white">
-            Product Design
+            Sales & Marketing
           </p>
         </div>
 
         <div className="flex flex-col justify-center rounded-2xl bg-white bg-clip-border px-3 py-4 shadow-3xl shadow-shadow-500 dark:!bg-navy-700 dark:shadow-none">
           <p className="text-sm text-gray-600">Work History</p>
           <p className="text-base font-medium text-navy-700 dark:text-white">
-            English, Spanish, Italian
+            Caria Estates, Global Realty
           </p>
         </div>
 
         <div className="flex flex-col items-start justify-center rounded-2xl bg-white bg-clip-border px-3 py-4 shadow-3xl shadow-shadow-500 dark:!bg-navy-700 dark:shadow-none">
           <p className="text-sm text-gray-600">Organization</p>
           <p className="text-base font-medium text-navy-700 dark:text-white">
-            Simmmple Web LLC
+            Caria Estates
           </p>
         </div>
 
